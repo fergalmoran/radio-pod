@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { showsQueryOptions } from '#/lib/queries'
 import { getRole, canCreateShow } from '#/lib/roles'
+import { siteSettings } from '#/lib/site-settings'
 
 export const Route = createFileRoute('/shows')({
   loader: async ({ context }) => {
@@ -22,7 +23,7 @@ function ShowsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1">Shows</h1>
-          <p className="text-muted-foreground">All programmes on radio-pod.</p>
+          <p className="text-muted-foreground">All programmes on {siteSettings.name}.</p>
         </div>
         {canCreate && (
           <Button asChild size="sm">

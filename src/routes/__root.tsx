@@ -4,7 +4,7 @@ import {
   createRootRouteWithContext,
   Outlet,
 } from '@tanstack/react-router'
-import type { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Navbar } from '#/components/layout/navbar'
 import { Sidebar } from '#/components/layout/sidebar'
 import { PlayerBar } from '#/components/layout/player-bar'
@@ -13,6 +13,7 @@ import { ThemeProvider } from 'next-themes'
 import appCss from '#/app.css?url'
 import { getSession } from '#/server/fns/auth-fns'
 import type { Session } from '#/lib/auth'
+import { siteSettings } from '#/lib/site-settings'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
 
@@ -26,7 +27,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'radio-pod' },
+      { title: siteSettings.name },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
@@ -38,6 +39,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   notFoundComponent: NotFound,
 })
+const queryClient = new QueryClient();
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -47,10 +49,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </QueryClientProvider>
         <Scripts />
       </body>
     </html>

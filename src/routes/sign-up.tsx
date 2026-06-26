@@ -51,7 +51,7 @@ function SignUpPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Create account</CardTitle>
-          <CardDescription>Join radio-pod today</CardDescription>
+          <CardDescription>Join {siteSettings.name} today</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">

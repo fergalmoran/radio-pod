@@ -3,7 +3,7 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { and, gte, lt, asc, eq } from 'drizzle-orm'
 
 type GetEpisodesInput = {
-  weekStart: string // ISO date string for Monday 00:00 local
+  month: string // "YYYY-MM"
 }
 
 type CreateEpisodeInput = {
@@ -15,15 +15,15 @@ type CreateEpisodeInput = {
   imageUrl?: string
 }
 
-export const getEpisodesForWeek = createServerFn({ method: 'GET' })
+export const getEpisodesForMonth = createServerFn({ method: 'GET' })
   .validator((data: unknown) => data as GetEpisodesInput)
   .handler(async ({ data }) => {
     const { db } = await import('#/db')
     const { episodes, shows } = await import('#/db/schema')
 
-    const start = new Date(data.weekStart)
-    const end = new Date(start)
-    end.setDate(end.getDate() + 7)
+    const [year, month] = data.month.split('-').map(Number)
+    const start = new Date(year, month - 1, 1)
+    const end = new Date(year, month, 1)
 
     const rows = await db
       .select({

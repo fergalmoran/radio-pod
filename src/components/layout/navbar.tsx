@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
 import { ThemeToggle } from '#/components/theme-toggle'
+import { siteSettings } from '#/lib/site-settings'
 
 export function Navbar() {
   const { session } = useRouteContext({ from: '__root__' })
@@ -21,7 +22,7 @@ export function Navbar() {
       <div className="container mx-auto flex h-14 items-center gap-4 px-4">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg">
           <Radio className="h-5 w-5 text-primary" />
-          radio-pod
+          {siteSettings.name}
         </Link>
 
         <nav className="flex items-center gap-1 ml-2">

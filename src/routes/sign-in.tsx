@@ -49,7 +49,7 @@ function SignInPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Sign in</CardTitle>
-          <CardDescription>Welcome back to radio-pod</CardDescription>
+          <CardDescription>Welcome back to {siteSettings.name}</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">

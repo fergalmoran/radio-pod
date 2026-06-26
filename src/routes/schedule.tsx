@@ -3,43 +3,35 @@ import { createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-r
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, CalendarPlus } from 'lucide-react'
 import { Button } from '#/components/ui/button'
-import { WeekCalendar } from '#/components/schedule/week-calendar'
+import { MonthCalendar } from '#/components/schedule/month-calendar'
 import { ScheduleEpisodeDialog } from '#/components/schedule/schedule-episode-dialog'
-import { episodesForWeekQueryOptions, showsForUserQueryOptions } from '#/lib/queries'
+import { episodesForMonthQueryOptions, showsForUserQueryOptions } from '#/lib/queries'
 import { getRole, canSchedule } from '#/lib/roles'
 
-function getMondayOf(date = new Date()) {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  d.setHours(0, 0, 0, 0)
-  return d.toISOString().slice(0, 10)
+function getCurrentMonth() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function formatWeekRange(weekStart: string) {
-  const start = new Date(weekStart)
-  const end = new Date(weekStart)
-  end.setDate(end.getDate() + 6)
-  const fmt = (d: Date) =>
-    d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })
-  return `${fmt(start)} – ${fmt(end)}`
+function shiftMonth(month: string, delta: number) {
+  const [y, m] = month.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function shiftWeek(weekStart: string, delta: number) {
-  const d = new Date(weekStart)
-  d.setDate(d.getDate() + delta * 7)
-  return d.toISOString().slice(0, 10)
+function formatMonthTitle(month: string) {
+  const [y, m] = month.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
 }
 
 export const Route = createFileRoute('/schedule')({
-  validateSearch: (search): { week?: string } => ({
-    week: typeof search.week === 'string' ? search.week : undefined,
+  validateSearch: (search): { month?: string } => ({
+    month: typeof search.month === 'string' ? search.month : undefined,
   }),
-  loaderDeps: ({ search }) => ({ week: search.week ?? getMondayOf() }),
+  loaderDeps: ({ search }) => ({ month: search.month ?? getCurrentMonth() }),
   loader: async ({ deps, context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(episodesForWeekQueryOptions(deps.week)),
+      context.queryClient.ensureQueryData(episodesForMonthQueryOptions(deps.month)),
       context.queryClient.ensureQueryData(showsForUserQueryOptions),
     ])
   },
@@ -47,23 +39,21 @@ export const Route = createFileRoute('/schedule')({
 })
 
 function SchedulePage() {
-  const { week: weekParam } = Route.useSearch()
-  const week = weekParam ?? getMondayOf()
+  const { month: monthParam } = Route.useSearch()
+  const month = monthParam ?? getCurrentMonth()
 
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
   const userCanSchedule = canSchedule(role)
 
-  const { data: episodes } = useSuspenseQuery(episodesForWeekQueryOptions(week))
+  const { data: episodes } = useSuspenseQuery(episodesForMonthQueryOptions(month))
 
   const navigate = useNavigate({ from: '/schedule' })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogDate, setDialogDate] = useState<Date | null>(null)
 
-  const weekStart = new Date(week)
-
-  function goToWeek(delta: number) {
-    navigate({ search: { week: shiftWeek(week, delta) } })
+  function goToMonth(delta: number) {
+    navigate({ search: { month: shiftMonth(month, delta) } })
   }
 
   function handleSchedule(date: Date) {
@@ -76,20 +66,20 @@ function SchedulePage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold mb-1">Schedule</h1>
-          <p className="text-muted-foreground text-sm">{formatWeekRange(week)}</p>
+          <p className="text-muted-foreground text-sm">{formatMonthTitle(month)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => goToWeek(-1)}>
+          <Button variant="outline" size="icon" onClick={() => goToMonth(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate({ search: { week: getMondayOf() } })}
+            onClick={() => navigate({ search: { month: getCurrentMonth() } })}
           >
-            This week
+            This month
           </Button>
-          <Button variant="outline" size="icon" onClick={() => goToWeek(1)}>
+          <Button variant="outline" size="icon" onClick={() => goToMonth(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           {userCanSchedule && (
@@ -101,16 +91,12 @@ function SchedulePage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[560px]">
-          <WeekCalendar
-            weekStart={weekStart}
-            episodes={episodes}
-            canSchedule={userCanSchedule}
-            onSchedule={handleSchedule}
-          />
-        </div>
-      </div>
+      <MonthCalendar
+        month={month}
+        episodes={episodes}
+        canSchedule={userCanSchedule}
+        onSchedule={handleSchedule}
+      />
 
       {!userCanSchedule && (
         <p className="text-xs text-muted-foreground text-center">

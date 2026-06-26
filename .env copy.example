@@ -1,0 +1,10 @@
+DATABASE_URL=postgresql://user:password@localhost:5432/radio_pod
+
+BETTER_AUTH_SECRET=change-me-to-a-random-secret-at-least-32-chars
+BETTER_AUTH_URL=http://localhost:3000
+
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+
+GITHUB_OAUTH_CLIENT_ID=
+GITHUB_OAUTH_CLIENT_SECRET=

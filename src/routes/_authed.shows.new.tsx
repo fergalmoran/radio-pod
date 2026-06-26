@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
@@ -18,36 +19,36 @@ export const Route = createFileRoute('/_authed/shows/new')({
 
 function NewShowPage() {
   const navigate = useNavigate()
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
-  const [hostName, setHostName] = useState('')
-  const [error, setError] = useState('')
-  const [pending, setPending] = useState(false)
+  const queryClient = useQueryClient()
 
   const { session } = Route.useRouteContext()
   const role = getRole(session)
   const isEditor = role === 'admin' || role === 'editor'
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setPending(true)
-    try {
-      await createShow({
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [hostName, setHostName] = useState('')
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      createShow({
         data: {
           title,
           description: description || undefined,
           imageUrl: imageUrl || undefined,
           hostName: isEditor && hostName ? hostName : undefined,
         },
-      })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shows'] })
       navigate({ to: '/shows' })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create show')
-    } finally {
-      setPending(false)
-    }
+    },
+  })
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    mutation.mutate()
   }
 
   return (
@@ -120,19 +121,25 @@ function NewShowPage() {
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {mutation.isError && (
+          <p className="text-sm text-destructive">
+            {mutation.error instanceof Error
+              ? mutation.error.message
+              : 'Failed to create show'}
+          </p>
+        )}
 
         <div className="flex gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate({ to: '/shows' })}
-            disabled={pending}
+            disabled={mutation.isPending}
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={pending}>
-            {pending ? 'Creating...' : 'Create show'}
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? 'Creating...' : 'Create show'}
           </Button>
         </div>
       </form>

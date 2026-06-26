@@ -1,20 +1,21 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Button } from '#/components/ui/button'
-import { getShows } from '#/server/fns/shows-fns'
+import { showsQueryOptions } from '#/lib/queries'
 import { getRole, canCreateShow } from '#/lib/roles'
 
 export const Route = createFileRoute('/shows')({
   loader: async ({ context }) => {
-    const shows = await getShows()
-    const role = getRole(context.session)
-    return { shows, canCreate: canCreateShow(role) }
+    await context.queryClient.ensureQueryData(showsQueryOptions)
+    return { canCreate: canCreateShow(getRole(context.session)) }
   },
   component: ShowsPage,
 })
 
 function ShowsPage() {
-  const { shows, canCreate } = Route.useLoaderData()
+  const { canCreate } = Route.useLoaderData()
+  const { data: shows } = useSuspenseQuery(showsQueryOptions)
 
   return (
     <div className="space-y-6">

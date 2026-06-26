@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useRouter } from '@tanstack/react-router'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -20,14 +20,12 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import { createEpisode } from '#/server/fns/schedule-fns'
-
-type Show = { id: number; title: string }
+import { showsForUserQueryOptions } from '#/lib/queries'
 
 type Props = {
   open: boolean
   onClose: () => void
   defaultDate: Date | null
-  shows: Show[]
 }
 
 function toDatetimeLocal(date: Date | null) {
@@ -36,28 +34,24 @@ function toDatetimeLocal(date: Date | null) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-export function ScheduleEpisodeDialog({ open, onClose, defaultDate, shows }: Props) {
-  const router = useRouter()
+export function ScheduleEpisodeDialog({ open, onClose, defaultDate }: Props) {
+  const queryClient = useQueryClient()
+  const { data: shows = [] } = useQuery(showsForUserQueryOptions)
+
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [showId, setShowId] = useState<string>('')
+  const [showId, setShowId] = useState('')
   const [broadcastAt, setBroadcastAt] = useState(toDatetimeLocal(defaultDate))
   const [duration, setDuration] = useState('')
   const [imageUrl, setImageUrl] = useState('')
-  const [error, setError] = useState('')
-  const [pending, setPending] = useState(false)
 
   useEffect(() => {
     setBroadcastAt(toDatetimeLocal(defaultDate))
   }, [defaultDate])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!broadcastAt) return
-    setError('')
-    setPending(true)
-    try {
-      await createEpisode({
+  const mutation = useMutation({
+    mutationFn: () =>
+      createEpisode({
         data: {
           title,
           description: description || undefined,
@@ -66,15 +60,12 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, shows }: Pro
           durationMinutes: duration ? Number(duration) : undefined,
           imageUrl: imageUrl || undefined,
         },
-      })
-      router.invalidate()
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['episodes'] })
       handleClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to schedule episode')
-    } finally {
-      setPending(false)
-    }
-  }
+    },
+  })
 
   function handleClose() {
     setTitle('')
@@ -83,8 +74,14 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, shows }: Pro
     setBroadcastAt(toDatetimeLocal(defaultDate))
     setDuration('')
     setImageUrl('')
-    setError('')
+    mutation.reset()
     onClose()
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!broadcastAt) return
+    mutation.mutate()
   }
 
   return (
@@ -170,14 +167,25 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, shows }: Pro
             />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {mutation.isError && (
+            <p className="text-sm text-destructive">
+              {mutation.error instanceof Error
+                ? mutation.error.message
+                : 'Failed to schedule episode'}
+            </p>
+          )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={pending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={mutation.isPending}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? 'Scheduling...' : 'Schedule'}
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Scheduling...' : 'Schedule'}
             </Button>
           </DialogFooter>
         </form>

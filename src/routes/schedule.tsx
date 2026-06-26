@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-router'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, CalendarPlus } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { WeekCalendar } from '#/components/schedule/week-calendar'
 import { ScheduleEpisodeDialog } from '#/components/schedule/schedule-episode-dialog'
-import { getEpisodesForWeek } from '#/server/fns/schedule-fns'
-import { getShowsForUser } from '#/server/fns/shows-fns'
+import { episodesForWeekQueryOptions, showsForUserQueryOptions } from '#/lib/queries'
 import { getRole, canSchedule } from '#/lib/roles'
 
 function getMondayOf(date = new Date()) {
@@ -38,12 +38,10 @@ export const Route = createFileRoute('/schedule')({
   }),
   loaderDeps: ({ search }) => ({ week: search.week ?? getMondayOf() }),
   loader: async ({ deps, context }) => {
-    const [episodes, shows] = await Promise.all([
-      getEpisodesForWeek({ data: { weekStart: deps.week } }),
-      getShowsForUser(),
+    await Promise.all([
+      context.queryClient.ensureQueryData(episodesForWeekQueryOptions(deps.week)),
+      context.queryClient.ensureQueryData(showsForUserQueryOptions),
     ])
-    const role = getRole(context.session)
-    return { episodes, shows, role }
   },
   component: SchedulePage,
 })
@@ -51,13 +49,18 @@ export const Route = createFileRoute('/schedule')({
 function SchedulePage() {
   const { week: weekParam } = Route.useSearch()
   const week = weekParam ?? getMondayOf()
-  const { episodes, shows, role } = Route.useLoaderData()
+
+  const { session } = useRouteContext({ from: '__root__' })
+  const role = getRole(session)
+  const userCanSchedule = canSchedule(role)
+
+  const { data: episodes } = useSuspenseQuery(episodesForWeekQueryOptions(week))
+
   const navigate = useNavigate({ from: '/schedule' })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogDate, setDialogDate] = useState<Date | null>(null)
 
   const weekStart = new Date(week)
-  const userCanSchedule = canSchedule(role)
 
   function goToWeek(delta: number) {
     navigate({ search: { week: shiftWeek(week, delta) } })
@@ -70,7 +73,6 @@ function SchedulePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold mb-1">Schedule</h1>
@@ -99,7 +101,6 @@ function SchedulePage() {
         </div>
       </div>
 
-      {/* Calendar */}
       <div className="overflow-x-auto">
         <div className="min-w-[560px]">
           <WeekCalendar
@@ -122,7 +123,6 @@ function SchedulePage() {
           open={dialogOpen}
           onClose={() => setDialogOpen(false)}
           defaultDate={dialogDate}
-          shows={shows}
         />
       )}
     </div>

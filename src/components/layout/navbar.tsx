@@ -11,8 +11,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { siteSettings } from '@/lib/site-settings'
-import { Icons } from '../ui/icons'
-
 export function Navbar() {
   const { session } = useRouteContext({ from: '__root__' })
   const navigate = useNavigate()
@@ -21,7 +19,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto flex h-14 items-center gap-4 px-4">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <Icons.Radio className="h-5 w-5 text-primary" />
+          <img src="/logo.png" className="h-6 w-6" alt="" />
           {siteSettings.name}
         </Link>
 

@@ -51,13 +51,20 @@ function SchedulePage() {
   const navigate = useNavigate({ from: '/schedule' })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogDate, setDialogDate] = useState<Date | null>(null)
+  const [editingEpisode, setEditingEpisode] = useState<(typeof episodes)[number] | null>(null)
 
   function goToMonth(delta: number) {
     navigate({ search: { month: shiftMonth(month, delta) } })
   }
 
   function handleSchedule(date: Date) {
+    setEditingEpisode(null)
     setDialogDate(date)
+    setDialogOpen(true)
+  }
+
+  function handleEdit(episode: (typeof episodes)[number]) {
+    setEditingEpisode(episode)
     setDialogOpen(true)
   }
 
@@ -96,6 +103,7 @@ function SchedulePage() {
         episodes={episodes}
         canSchedule={userCanSchedule}
         onSchedule={handleSchedule}
+        onEdit={handleEdit}
       />
 
       {!userCanSchedule && (
@@ -107,8 +115,9 @@ function SchedulePage() {
       {userCanSchedule && (
         <ScheduleEpisodeDialog
           open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
+          onClose={() => { setDialogOpen(false); setEditingEpisode(null) }}
           defaultDate={dialogDate}
+          episode={editingEpisode}
         />
       )}
     </div>

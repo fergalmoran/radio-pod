@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { siteSettings } from '@/lib/site-settings'
+import { SocialAuthButtons } from '@/components/auth/social-auth-buttons'
 
 export const Route = createFileRoute('/sign-up')({
   beforeLoad: ({ context }) => {
@@ -54,8 +55,10 @@ function SignUpPage() {
           <CardTitle>Create account</CardTitle>
           <CardDescription>Join {siteSettings.name} today</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+        <CardContent className="space-y-4">
+          <SocialAuthButtons action="Sign up" />
+
+          <form id="sign-up-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -89,19 +92,19 @@ function SignUpPage() {
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3 pb-6">
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? 'Creating account...' : 'Create account'}
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link to="/sign-in" className="underline underline-offset-2">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-3 pb-6">
+          <Button type="submit" form="sign-up-form" className="w-full" disabled={pending}>
+            {pending ? 'Creating account...' : 'Create account'}
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{' '}
+            <Link to="/sign-in" className="underline underline-offset-2">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   )

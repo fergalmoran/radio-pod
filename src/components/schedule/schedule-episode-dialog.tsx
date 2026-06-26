@@ -19,61 +19,126 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createEpisode } from '@/server/fns/schedule-fns'
+import { createEpisode, updateEpisode } from '@/server/fns/schedule-fns'
 import { showsForUserQueryOptions } from '@/lib/queries'
+
+type Episode = {
+  id: number
+  title: string
+  description: string | null
+  showId: number | null
+  broadcastAt: Date | string
+  durationSeconds: number | null
+  imageUrl: string | null
+  audioUrl: string | null
+}
 
 type Props = {
   open: boolean
   onClose: () => void
   defaultDate: Date | null
+  episode?: Episode | null
 }
 
-function toDatetimeLocal(date: Date | null) {
+function toDatetimeLocal(date: Date | string | null) {
   if (!date) return ''
+  const d = new Date(date)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-export function ScheduleEpisodeDialog({ open, onClose, defaultDate }: Props) {
+export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: Props) {
   const queryClient = useQueryClient()
   const { data: shows = [] } = useQuery(showsForUserQueryOptions)
+  const isEditing = !!episode
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [showId, setShowId] = useState('')
-  const [broadcastAt, setBroadcastAt] = useState(toDatetimeLocal(defaultDate))
+  const [broadcastAt, setBroadcastAt] = useState('')
   const [duration, setDuration] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [audioUrl, setAudioUrl] = useState('')
+  const [audioUploading, setAudioUploading] = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
 
   useEffect(() => {
-    setBroadcastAt(toDatetimeLocal(defaultDate))
-  }, [defaultDate])
+    if (episode) {
+      setTitle(episode.title)
+      setDescription(episode.description ?? '')
+      setShowId(episode.showId ? String(episode.showId) : '_none')
+      setBroadcastAt(toDatetimeLocal(episode.broadcastAt))
+      setDuration(episode.durationSeconds ? String(episode.durationSeconds / 60) : '')
+      setImageUrl(episode.imageUrl ?? '')
+      setAudioUrl(episode.audioUrl ?? '')
+    } else {
+      setTitle('')
+      setDescription('')
+      setShowId('')
+      setBroadcastAt(toDatetimeLocal(defaultDate))
+      setDuration('')
+      setImageUrl('')
+      setAudioUrl('')
+    }
+    setAudioUploading(false)
+    setImageUploading(false)
+  }, [episode, defaultDate, open])
 
-  const mutation = useMutation({
-    mutationFn: () =>
-      createEpisode({
-        data: {
-          title,
-          description: description || undefined,
-          showId: showId && showId !== '_none' ? Number(showId) : null,
-          broadcastAt: new Date(broadcastAt).toISOString(),
-          durationMinutes: duration ? Number(duration) : undefined,
-          imageUrl: imageUrl || undefined,
-        },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['episodes'] })
-      handleClose()
-    },
+  async function uploadFile(file: File, type: 'audio' | 'image'): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', type)
+    const res = await fetch('/api/upload', { method: 'POST', body: formData })
+    if (!res.ok) throw new Error(await res.text())
+    const { url } = await res.json() as { url: string }
+    return url
+  }
+
+  async function handleAudioChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAudioUploading(true)
+    try {
+      setAudioUrl(await uploadFile(file, 'audio'))
+    } finally {
+      setAudioUploading(false)
+    }
+  }
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageUploading(true)
+    try {
+      setImageUrl(await uploadFile(file, 'image'))
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
+  const sharedData = () => ({
+    title,
+    description: description || undefined,
+    showId: showId && showId !== '_none' ? Number(showId) : null,
+    broadcastAt: new Date(broadcastAt).toISOString(),
+    durationMinutes: duration ? Number(duration) : undefined,
+    imageUrl: imageUrl || undefined,
+    audioUrl: audioUrl || undefined,
   })
 
+  const createMutation = useMutation({
+    mutationFn: () => createEpisode({ data: sharedData() }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['episodes'] }); handleClose() },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: () => updateEpisode({ data: { id: episode!.id, ...sharedData() } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['episodes'] }); handleClose() },
+  })
+
+  const mutation = isEditing ? updateMutation : createMutation
+
   function handleClose() {
-    setTitle('')
-    setDescription('')
-    setShowId('')
-    setBroadcastAt(toDatetimeLocal(defaultDate))
-    setDuration('')
-    setImageUrl('')
     mutation.reset()
     onClose()
   }
@@ -88,8 +153,10 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate }: Props) {
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Schedule an episode</DialogTitle>
-          <DialogDescription>Add a new episode to the broadcast schedule.</DialogDescription>
+          <DialogTitle>{isEditing ? 'Edit episode' : 'Schedule an episode'}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? 'Update this episode.' : 'Add a new episode to the broadcast schedule.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -157,35 +224,47 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="ep-image">Image URL</Label>
+            <Label htmlFor="ep-audio">Audio file</Label>
+            <Input
+              id="ep-audio"
+              type="file"
+              accept="audio/*"
+              onChange={handleAudioChange}
+              disabled={audioUploading}
+            />
+            {audioUploading && <p className="text-xs text-muted-foreground">Uploading…</p>}
+            {audioUrl && !audioUploading && (
+              <p className="text-xs text-muted-foreground truncate">{audioUrl.split('/').pop()}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ep-image">Episode image</Label>
             <Input
               id="ep-image"
-              type="url"
-              placeholder="https://..."
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              disabled={imageUploading}
             />
+            {imageUploading && <p className="text-xs text-muted-foreground">Uploading…</p>}
+            {imageUrl && !imageUploading && (
+              <p className="text-xs text-muted-foreground truncate">{imageUrl.split('/').pop()}</p>
+            )}
           </div>
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {mutation.error instanceof Error
-                ? mutation.error.message
-                : 'Failed to schedule episode'}
+              {mutation.error instanceof Error ? mutation.error.message : 'Failed to save episode'}
             </p>
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={mutation.isPending}
-            >
+            <Button type="button" variant="outline" onClick={handleClose} disabled={mutation.isPending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Scheduling...' : 'Schedule'}
+            <Button type="submit" disabled={mutation.isPending || audioUploading || imageUploading}>
+              {mutation.isPending ? 'Saving...' : isEditing ? 'Save changes' : 'Schedule'}
             </Button>
           </DialogFooter>
         </form>

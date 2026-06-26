@@ -10,10 +10,13 @@ type CreateEpisodeInput = {
   title: string
   description?: string
   showId?: number | null
-  broadcastAt: string // ISO datetime string
+  broadcastAt: string
   durationMinutes?: number
   imageUrl?: string
+  audioUrl?: string
 }
+
+type UpdateEpisodeInput = CreateEpisodeInput & { id: number }
 
 export const getEpisodesForMonth = createServerFn({ method: 'GET' })
   .validator((data: unknown) => data as GetEpisodesInput)
@@ -30,9 +33,10 @@ export const getEpisodesForMonth = createServerFn({ method: 'GET' })
         id: episodes.id,
         title: episodes.title,
         description: episodes.description,
+        audioUrl: episodes.audioUrl,
+        imageUrl: episodes.imageUrl,
         broadcastAt: episodes.broadcastAt,
         durationSeconds: episodes.durationSeconds,
-        imageUrl: episodes.imageUrl,
         showId: episodes.showId,
         showTitle: shows.title,
       })
@@ -75,7 +79,46 @@ export const createEpisode = createServerFn({ method: 'POST' })
         broadcastAt: new Date(data.broadcastAt),
         durationSeconds: data.durationMinutes ? data.durationMinutes * 60 : null,
         imageUrl: data.imageUrl,
+        audioUrl: data.audioUrl,
       })
+      .returning()
+
+    return episode
+  })
+
+export const updateEpisode = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data as UpdateEpisodeInput)
+  .handler(async ({ data }) => {
+    const { auth } = await import('@/lib/auth')
+    const { db } = await import('@/db')
+    const { episodes, shows } = await import('@/db/schema')
+    const { getRole, canSchedule, canManageAllShows } = await import('@/lib/roles')
+
+    const session = await auth.api.getSession({ headers: await getRequestHeaders() })
+    if (!session) throw new Error('Unauthorized')
+
+    const role = getRole(session)
+    if (!canSchedule(role)) throw new Error('Forbidden')
+
+    if (data.showId && !canManageAllShows(role)) {
+      const [show] = await db.select().from(shows).where(eq(shows.id, data.showId))
+      if (!show || show.hostUserId !== session.user.id) {
+        throw new Error('Forbidden: not your show')
+      }
+    }
+
+    const [episode] = await db
+      .update(episodes)
+      .set({
+        title: data.title,
+        description: data.description,
+        showId: data.showId ?? null,
+        broadcastAt: new Date(data.broadcastAt),
+        durationSeconds: data.durationMinutes ? data.durationMinutes * 60 : null,
+        imageUrl: data.imageUrl,
+        audioUrl: data.audioUrl,
+      })
+      .where(eq(episodes.id, data.id))
       .returning()
 
     return episode

@@ -4,8 +4,12 @@ import { Icons } from '../ui/icons'
 type Episode = {
   id: number
   title: string
-  broadcastAt: Date | string
+  description: string | null
+  audioUrl: string | null
+  imageUrl: string | null
+  broadcastAt: Date
   durationSeconds: number | null
+  showId: number | null
   showTitle: string | null
 }
 
@@ -14,6 +18,7 @@ type Props = {
   episodes: Episode[]
   canSchedule: boolean
   onSchedule: (date: Date) => void
+  onEdit: (episode: Episode) => void
 }
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -32,7 +37,7 @@ function isSameDay(a: Date | string, b: Date) {
   )
 }
 
-export function MonthCalendar({ month, episodes, canSchedule, onSchedule }: Props) {
+export function MonthCalendar({ month, episodes, canSchedule, onSchedule, onEdit }: Props) {
   const [year, monthNum] = month.split('-').map(Number)
   const today = new Date()
 
@@ -117,8 +122,11 @@ export function MonthCalendar({ month, episodes, canSchedule, onSchedule }: Prop
                   {dayEpisodes.slice(0, MAX_VISIBLE).map((ep) => (
                     <div
                       key={ep.id}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-baseline gap-1 rounded px-1.5 py-0.5 bg-primary/15 hover:bg-primary/25 transition-colors cursor-default"
+                      onClick={(e) => { e.stopPropagation(); if (canSchedule) onEdit(ep) }}
+                      className={cn(
+                        'flex items-baseline gap-1 rounded px-1.5 py-0.5 bg-primary/15 hover:bg-primary/25 transition-colors',
+                        canSchedule ? 'cursor-pointer' : 'cursor-default',
+                      )}
                     >
                       <span className="text-[10px] font-semibold text-primary shrink-0 tabular-nums">
                         {formatTime(ep.broadcastAt)}

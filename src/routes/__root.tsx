@@ -5,9 +5,9 @@ import {
   Outlet,
 } from '@tanstack/react-router'
 import type { QueryClient } from '@tanstack/react-query'
-import { Navbar } from '#/components/layout/Navbar'
-import { Sidebar } from '#/components/layout/Sidebar'
-import { PlayerBar } from '#/components/layout/PlayerBar'
+import { Navbar } from '#/components/layout/navbar'
+import { Sidebar } from '#/components/layout/sidebar'
+import { PlayerBar } from '#/components/layout/player-bar'
 import { Toaster } from '#/components/ui/sonner'
 import { ThemeProvider } from 'next-themes'
 import appCss from '#/app.css?url'

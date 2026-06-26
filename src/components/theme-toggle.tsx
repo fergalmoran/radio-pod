@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Moon, Sun, Monitor } from 'lucide-react'
-import { Button } from '#/components/ui/button'
+import { Button } from '@/components/ui/button'
+import { Icons } from './ui/icons'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
 
@@ -44,7 +44,7 @@ export function ThemeToggle() {
     window.localStorage.setItem('theme', nextMode)
   }
 
-  const Icon = mode === 'light' ? Sun : mode === 'dark' ? Moon : Monitor
+  const Icon = mode === 'light' ? Icons.Sun : mode === 'dark' ? Icons.Moon : Icons.Monitor
 
   return (
     <Button variant="ghost" size="icon-sm" onClick={toggleMode} aria-label="Toggle theme">

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { Textarea } from '#/components/ui/textarea'
-import { createShow } from '#/server/fns/shows-fns'
-import { getRole, canCreateShow } from '#/lib/roles'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { createShow } from '@/server/fns/shows-fns'
+import { getRole, canCreateShow } from '@/lib/roles'
+import { Icons } from '@/components/ui/icons'
 
 export const Route = createFileRoute('/_authed/shows/new')({
   beforeLoad: ({ context }) => {
@@ -60,7 +60,7 @@ function NewShowPage() {
           className="-ml-2 mb-4"
           onClick={() => navigate({ to: '/shows' })}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <Icons.ArrowLeft className="h-4 w-4" />
           Back to shows
         </Button>
         <h1 className="text-2xl font-bold mb-1">Create a show</h1>

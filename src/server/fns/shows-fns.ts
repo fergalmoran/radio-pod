@@ -10,8 +10,8 @@ type CreateShowInput = {
 }
 
 export const getShows = createServerFn({ method: 'GET' }).handler(async () => {
-  const { db } = await import('#/db')
-  const { shows } = await import('#/db/schema')
+  const { db } = await import('@/db')
+  const { shows } = await import('@/db/schema')
   return db
     .select({
       id: shows.id,
@@ -28,10 +28,10 @@ export const getShows = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 export const getShowsForUser = createServerFn({ method: 'GET' }).handler(async () => {
-  const { auth } = await import('#/lib/auth')
-  const { db } = await import('#/db')
-  const { shows } = await import('#/db/schema')
-  const { getRole, canManageAllShows } = await import('#/lib/roles')
+  const { auth } = await import('@/lib/auth')
+  const { db } = await import('@/db')
+  const { shows } = await import('@/db/schema')
+  const { getRole, canManageAllShows } = await import('@/lib/roles')
 
   const session = await auth.api.getSession({ headers: await getRequestHeaders() })
   if (!session) return [] as never[]
@@ -59,10 +59,10 @@ export const getShowsForUser = createServerFn({ method: 'GET' }).handler(async (
 export const createShow = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data as CreateShowInput)
   .handler(async ({ data }) => {
-    const { auth } = await import('#/lib/auth')
-    const { db } = await import('#/db')
-    const { shows } = await import('#/db/schema')
-    const { getRole, canCreateShow } = await import('#/lib/roles')
+    const { auth } = await import('@/lib/auth')
+    const { db } = await import('@/db')
+    const { shows } = await import('@/db/schema')
+    const { getRole, canCreateShow } = await import('@/lib/roles')
 
     const session = await auth.api.getSession({ headers: await getRequestHeaders() })
     if (!session) throw new Error('Unauthorized')

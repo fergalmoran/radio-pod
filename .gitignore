@@ -6,3 +6,4 @@ dist
 .env.production
 drizzle
 src/routeTree.gen.ts
+.tanstack/

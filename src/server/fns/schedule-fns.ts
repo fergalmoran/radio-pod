@@ -18,8 +18,8 @@ type CreateEpisodeInput = {
 export const getEpisodesForMonth = createServerFn({ method: 'GET' })
   .validator((data: unknown) => data as GetEpisodesInput)
   .handler(async ({ data }) => {
-    const { db } = await import('#/db')
-    const { episodes, shows } = await import('#/db/schema')
+    const { db } = await import('@/db')
+    const { episodes, shows } = await import('@/db/schema')
 
     const [year, month] = data.month.split('-').map(Number)
     const start = new Date(year, month - 1, 1)
@@ -47,10 +47,10 @@ export const getEpisodesForMonth = createServerFn({ method: 'GET' })
 export const createEpisode = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data as CreateEpisodeInput)
   .handler(async ({ data }) => {
-    const { auth } = await import('#/lib/auth')
-    const { db } = await import('#/db')
-    const { episodes, shows } = await import('#/db/schema')
-    const { getRole, canSchedule, canManageAllShows } = await import('#/lib/roles')
+    const { auth } = await import('@/lib/auth')
+    const { db } = await import('@/db')
+    const { episodes, shows } = await import('@/db/schema')
+    const { getRole, canSchedule, canManageAllShows } = await import('@/lib/roles')
 
     const session = await auth.api.getSession({ headers: await getRequestHeaders() })
     if (!session) throw new Error('Unauthorized')

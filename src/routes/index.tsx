@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Skeleton } from '#/components/ui/skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const Route = createFileRoute('/')({
   component: HomePage,

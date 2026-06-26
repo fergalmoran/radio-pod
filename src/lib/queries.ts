@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
-import { getShows, getShowsForUser } from '#/server/fns/shows-fns'
-import { getEpisodesForMonth } from '#/server/fns/schedule-fns'
+import { getShows, getShowsForUser } from '@/server/fns/shows-fns'
+import { getEpisodesForMonth } from '@/server/fns/schedule-fns'
 
 export const showsQueryOptions = queryOptions({
   queryKey: ['shows'],

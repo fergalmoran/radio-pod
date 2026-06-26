@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, CalendarPlus } from 'lucide-react'
-import { Button } from '#/components/ui/button'
-import { MonthCalendar } from '#/components/schedule/month-calendar'
-import { ScheduleEpisodeDialog } from '#/components/schedule/schedule-episode-dialog'
-import { episodesForMonthQueryOptions, showsForUserQueryOptions } from '#/lib/queries'
-import { getRole, canSchedule } from '#/lib/roles'
+import { Button } from '@/components/ui/button'
+import { MonthCalendar } from '@/components/schedule/month-calendar'
+import { ScheduleEpisodeDialog } from '@/components/schedule/schedule-episode-dialog'
+import { episodesForMonthQueryOptions, showsForUserQueryOptions } from '@/lib/queries'
+import { getRole, canSchedule } from '@/lib/roles'
+import { Icons } from '@/components/ui/icons'
 
 function getCurrentMonth() {
   const d = new Date()
@@ -70,7 +70,7 @@ function SchedulePage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => goToMonth(-1)}>
-            <ChevronLeft className="h-4 w-4" />
+            <Icons.ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
@@ -80,11 +80,11 @@ function SchedulePage() {
             This month
           </Button>
           <Button variant="outline" size="icon" onClick={() => goToMonth(1)}>
-            <ChevronRight className="h-4 w-4" />
+            <Icons.ChevronRight className="h-4 w-4" />
           </Button>
           {userCanSchedule && (
             <Button size="sm" onClick={() => handleSchedule(new Date())}>
-              <CalendarPlus className="h-4 w-4" />
+              <Icons.CalendarPlus className="h-4 w-4" />
               Schedule episode
             </Button>
           )}

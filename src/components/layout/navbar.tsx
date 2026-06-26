@@ -1,17 +1,17 @@
 import { Link, useRouteContext, useNavigate } from '@tanstack/react-router'
-import { Radio } from 'lucide-react'
-import { authClient } from '#/lib/auth-client'
-import { Button, buttonVariants } from '#/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
+import { authClient } from '@/lib/auth-client'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '#/components/ui/dropdown-menu'
-import { ThemeToggle } from '#/components/theme-toggle'
-import { siteSettings } from '#/lib/site-settings'
+} from '@/components/ui/dropdown-menu'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { siteSettings } from '@/lib/site-settings'
+import { Icons } from '../ui/icons'
 
 export function Navbar() {
   const { session } = useRouteContext({ from: '__root__' })
@@ -21,7 +21,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto flex h-14 items-center gap-4 px-4">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <Radio className="h-5 w-5 text-primary" />
+          <Icons.Radio className="h-5 w-5 text-primary" />
           {siteSettings.name}
         </Link>
 

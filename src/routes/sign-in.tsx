@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
-import { authClient } from '#/lib/auth-client'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
+import { authClient } from '@/lib/auth-client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -11,7 +11,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '#/components/ui/card'
+} from '@/components/ui/card'
+import { siteSettings } from '@/lib/site-settings'
 
 export const Route = createFileRoute('/sign-in')({
   beforeLoad: ({ context }) => {

@@ -1,5 +1,5 @@
-import type { UserRole } from '#/db/schema'
-import type { Session } from '#/lib/auth'
+import type { UserRole } from '@/db/schema'
+import type { Session } from '@/lib/auth'
 
 export function getRole(session: Session | null): UserRole {
   if (!session) return 'user'

@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
-import { Button } from '#/components/ui/button'
-import { showsQueryOptions } from '#/lib/queries'
-import { getRole, canCreateShow } from '#/lib/roles'
-import { siteSettings } from '#/lib/site-settings'
+import { Button } from '@/components/ui/button'
+import { showsQueryOptions } from '@/lib/queries'
+import { getRole, canCreateShow } from '@/lib/roles'
+import { siteSettings } from '@/lib/site-settings'
+import { Icons } from '@/components/ui/icons'
 
 export const Route = createFileRoute('/shows')({
   loader: async ({ context }) => {
@@ -28,7 +28,7 @@ function ShowsPage() {
         {canCreate && (
           <Button asChild size="sm">
             <Link to="/shows/new">
-              <Plus className="h-4 w-4" />
+              <Icons.Plus className="h-4 w-4" />
               New show
             </Link>
           </Button>

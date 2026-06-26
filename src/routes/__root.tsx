@@ -5,15 +5,15 @@ import {
   Outlet,
 } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Navbar } from '#/components/layout/navbar'
-import { Sidebar } from '#/components/layout/sidebar'
-import { PlayerBar } from '#/components/layout/player-bar'
-import { Toaster } from '#/components/ui/sonner'
+import { Navbar } from '@/components/layout/navbar'
+import { Sidebar } from '@/components/layout/sidebar'
+import { PlayerBar } from '@/components/layout/player-bar'
+import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from 'next-themes'
-import appCss from '#/app.css?url'
-import { getSession } from '#/server/fns/auth-fns'
-import type { Session } from '#/lib/auth'
-import { siteSettings } from '#/lib/site-settings'
+import appCss from '@/app.css?url'
+import { getSession } from '@/server/fns/auth-fns'
+import type { Session } from '@/lib/auth'
+import { siteSettings } from '@/lib/site-settings'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
 

@@ -1,7 +1,7 @@
-import { Play, SkipBack, SkipForward, Volume2, Heart } from 'lucide-react'
-import { Button } from '#/components/ui/button'
-import { Skeleton } from '#/components/ui/skeleton'
-import { Separator } from '#/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { Icons } from '../ui/icons'
 
 export function PlayerBar() {
   return (
@@ -15,7 +15,7 @@ export function PlayerBar() {
             <Skeleton className="h-3 w-20 rounded" />
           </div>
           <Button variant="ghost" size="icon-sm" className="shrink-0" aria-label="Favorite">
-            <Heart className="h-4 w-4" />
+            <Icons.Heart className="h-4 w-4" />
           </Button>
         </div>
 
@@ -24,13 +24,13 @@ export function PlayerBar() {
         {/* Playback controls */}
         <div className="flex items-center gap-1 mx-auto">
           <Button variant="ghost" size="icon-sm" aria-label="Previous">
-            <SkipBack className="h-4 w-4" />
+            <Icons.SkipBack className="h-4 w-4" />
           </Button>
           <Button size="icon" aria-label="Play / Pause">
-            <Play className="h-4 w-4" />
+            <Icons.Play className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon-sm" aria-label="Next">
-            <SkipForward className="h-4 w-4" />
+            <Icons.SkipForward className="h-4 w-4" />
           </Button>
         </div>
 
@@ -38,7 +38,7 @@ export function PlayerBar() {
 
         {/* Volume */}
         <div className="flex items-center gap-2 w-36 shrink-0 ml-auto">
-          <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Icons.Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
           <Skeleton className="h-1.5 w-full rounded-full" />
         </div>
       </div>

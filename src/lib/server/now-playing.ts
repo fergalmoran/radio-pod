@@ -8,6 +8,7 @@ export type NowPlayingState = {
 }
 
 let state: NowPlayingState | null = null
+let episodeEndsAt = 0 // epoch ms; 0 means no episode expected
 const clients = new Set<ReadableStreamDefaultController<Uint8Array>>()
 const encoder = new TextEncoder()
 
@@ -27,6 +28,17 @@ export function setNowPlaying(s: NowPlayingState): void {
   }
 }
 
+/** Called by the scheduler when an episode starts. Guards the window so stale
+ *  on_track webhooks and Icecast polls don't overwrite the episode state. */
+export function markEpisodeStart(durationSeconds: number): void {
+  episodeEndsAt = Date.now() + durationSeconds * 1000
+}
+
+/** True while an episode is expected to still be playing. */
+export function isEpisodeExpected(): boolean {
+  return Date.now() < episodeEndsAt
+}
+
 export function addClient(ctrl: ReadableStreamDefaultController<Uint8Array>): void {
   clients.add(ctrl)
 }
@@ -39,7 +51,7 @@ type IcecastSource = { title?: string; artist?: string }
 type IcecastStatusJson = { icestats: { source?: IcecastSource | IcecastSource[] } }
 
 export async function pollIcecastNowPlaying(): Promise<void> {
-  if (state?.type === 'episode') return
+  if (isEpisodeExpected()) return
 
   const host = process.env.ICECAST_HOST ?? 'localhost'
   const port = process.env.ICECAST_PORT ?? '8000'

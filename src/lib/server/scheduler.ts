@@ -1,15 +1,16 @@
 import '@tanstack/react-start/server-only'
 import { join } from 'node:path'
 import net from 'node:net'
-import { gt, eq } from 'drizzle-orm'
+import { gt, and, lte, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { episodes, shows } from '@/db/schema'
-import { setNowPlaying, pollIcecastNowPlaying } from './now-playing'
+import { setNowPlaying, markEpisodeStart, pollIcecastNowPlaying } from './now-playing'
 
 type EpisodeJob = {
   id: number
   broadcastAt: Date
   audioUrl: string | null
+  durationSeconds: number | null
   title: string
   imageUrl: string | null
   showTitle: string | null
@@ -23,9 +24,49 @@ export function ensureRunning(): void {
   initialized = true
   void loadAndScheduleEpisodes()
   setInterval(() => void loadAndScheduleEpisodes(), 24 * 60 * 60 * 1000)
-  // Seed now-playing from Icecast and keep dead air metadata fresh
-  void pollIcecastNowPlaying()
-  setInterval(() => void pollIcecastNowPlaying(), 15_000)
+  // Restore in-progress episode state before the first Icecast poll so the
+  // guard window is armed and the dead-air poll doesn't overwrite it.
+  void resumeCurrentEpisode().then(() => {
+    void pollIcecastNowPlaying()
+    setInterval(() => void pollIcecastNowPlaying(), 15_000)
+  })
+}
+
+async function resumeCurrentEpisode(): Promise<void> {
+  try {
+    const now = new Date()
+    const rows = await db
+      .select({
+        id: episodes.id,
+        broadcastAt: episodes.broadcastAt,
+        durationSeconds: episodes.durationSeconds,
+        title: episodes.title,
+        imageUrl: episodes.imageUrl,
+        showTitle: shows.title,
+      })
+      .from(episodes)
+      .leftJoin(shows, eq(shows.id, episodes.showId))
+      .where(and(lte(episodes.broadcastAt, now), gt(episodes.broadcastAt, new Date(now.getTime() - 6 * 60 * 60 * 1000))))
+      .limit(10)
+
+    for (const row of rows) {
+      const duration = row.durationSeconds ?? 3600
+      const endsAt = row.broadcastAt.getTime() + duration * 1000
+      if (endsAt > Date.now()) {
+        const remainingSeconds = (endsAt - Date.now()) / 1000
+        markEpisodeStart(remainingSeconds)
+        setNowPlaying({
+          type: 'episode',
+          title: row.title,
+          artist: row.showTitle ?? 'Surge FM',
+          imageUrl: row.imageUrl ?? undefined,
+        })
+        break
+      }
+    }
+  } catch (err) {
+    console.error('[scheduler] Failed to resume current episode:', err)
+  }
 }
 
 async function loadAndScheduleEpisodes(): Promise<void> {
@@ -36,6 +77,7 @@ async function loadAndScheduleEpisodes(): Promise<void> {
         id: episodes.id,
         broadcastAt: episodes.broadcastAt,
         audioUrl: episodes.audioUrl,
+        durationSeconds: episodes.durationSeconds,
         title: episodes.title,
         imageUrl: episodes.imageUrl,
         showTitle: shows.title,
@@ -78,6 +120,17 @@ export function cancelEpisode(id: number): void {
 async function onEpisodeStart(episode: EpisodeJob): Promise<void> {
   jobs.delete(episode.id)
 
+  const duration = episode.durationSeconds ?? 3600
+
+  // Update the display first, regardless of whether there's audio to push.
+  markEpisodeStart(duration)
+  setNowPlaying({
+    type: 'episode',
+    title: episode.title,
+    artist: episode.showTitle ?? 'Surge FM',
+    imageUrl: episode.imageUrl ?? undefined,
+  })
+
   if (!episode.audioUrl) return
 
   // audioUrl in DB is /api/media/audio/filename.mp3 — map to the path Liquidsoap sees
@@ -87,12 +140,6 @@ async function onEpisodeStart(episode: EpisodeJob): Promise<void> {
 
   try {
     await pushToLiquidsoap(filePath)
-    setNowPlaying({
-      type: 'episode',
-      title: episode.title,
-      artist: episode.showTitle ?? 'Surge FM',
-      imageUrl: episode.imageUrl ?? undefined,
-    })
   } catch (err) {
     console.error('[scheduler] Failed to push episode to Liquidsoap:', err)
   }

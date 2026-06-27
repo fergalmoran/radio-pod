@@ -60,6 +60,8 @@ async function resumeCurrentEpisode(): Promise<void> {
           title: row.title,
           artist: row.showTitle ?? 'Surge FM',
           imageUrl: row.imageUrl ?? undefined,
+          startsAt: row.broadcastAt.getTime(),
+          endsAt,
         })
         break
       }
@@ -123,12 +125,16 @@ async function onEpisodeStart(episode: EpisodeJob): Promise<void> {
   const duration = episode.durationSeconds ?? 3600
 
   // Update the display first, regardless of whether there's audio to push.
+  const startsAt = episode.broadcastAt.getTime()
+  const endsAt = startsAt + duration * 1000
   markEpisodeStart(duration)
   setNowPlaying({
     type: 'episode',
     title: episode.title,
     artist: episode.showTitle ?? 'Surge FM',
     imageUrl: episode.imageUrl ?? undefined,
+    startsAt,
+    endsAt,
   })
 
   if (!episode.audioUrl) return

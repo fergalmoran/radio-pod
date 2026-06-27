@@ -112,6 +112,7 @@ export const chatMessages = pgTable('chat_messages', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  replyToId: integer('reply_to_id'),
   content: text('content'),
   gifUrl: text('gif_url'),
   gifTitle: text('gif_title'),

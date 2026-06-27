@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Icons } from '@/components/ui/icons'
 
 export type ChatMessageData = {
   id: number
@@ -9,6 +10,10 @@ export type ChatMessageData = {
   userId: string
   userName: string
   userImage: string | null
+  replyToId: number | null
+  replyToContent: string | null
+  replyToGifTitle: string | null
+  replyToUserName: string | null
 }
 
 function parseContent(content: string) {
@@ -32,13 +37,22 @@ function timeLabel(date: Date | string) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-export function ChatMessageItem({ message }: { message: ChatMessageData }) {
+type Props = {
+  message: ChatMessageData
+  onReply?: (message: ChatMessageData) => void
+}
+
+export function ChatMessageItem({ message, onReply }: Props) {
   const initials = message.userName
     .split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
+
+  const replyPreview = message.replyToId
+    ? message.replyToContent ?? (message.replyToGifTitle ? `GIF: ${message.replyToGifTitle}` : null)
+    : null
 
   return (
     <div className="flex gap-2 group">
@@ -52,7 +66,26 @@ export function ChatMessageItem({ message }: { message: ChatMessageData }) {
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-xs font-semibold">{message.userName}</span>
           <span className="text-xs text-muted-foreground">{timeLabel(message.createdAt)}</span>
+          {onReply && (
+            <button
+              type="button"
+              onClick={() => onReply(message)}
+              className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-0.5 rounded"
+              aria-label="Reply"
+            >
+              <Icons.Reply className="h-3 w-3" />
+            </button>
+          )}
         </div>
+
+        {replyPreview && (
+          <div className="mt-0.5 mb-1 pl-2 border-l-2 border-muted-foreground/30 text-xs text-muted-foreground line-clamp-1">
+            <span className="font-medium">{message.replyToUserName}</span>
+            {': '}
+            {replyPreview}
+          </div>
+        )}
+
         {message.content && (
           <p className="text-sm leading-snug break-words mt-0.5">
             {parseContent(message.content)}

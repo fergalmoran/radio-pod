@@ -5,6 +5,8 @@ export type NowPlayingState = {
   title: string
   artist: string
   imageUrl?: string
+  startsAt?: number // epoch ms
+  endsAt?: number   // epoch ms
 }
 
 export function useNowPlaying(): NowPlayingState | null {

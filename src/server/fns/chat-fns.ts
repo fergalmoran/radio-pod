@@ -1,16 +1,22 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { desc, eq } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 
 type SendMessageInput = {
   content?: string
   gifUrl?: string
   gifTitle?: string
+  replyToId?: number
 }
 
 export const getChatMessages = createServerFn({ method: 'GET' }).handler(async () => {
   const { db } = await import('@/db')
   const { chatMessages, users } = await import('@/db/schema')
+
+  const replyMessages = alias(chatMessages, 'reply_msg')
+  const replyUsers = alias(users, 'reply_user')
+
   const rows = await db
     .select({
       id: chatMessages.id,
@@ -18,14 +24,21 @@ export const getChatMessages = createServerFn({ method: 'GET' }).handler(async (
       gifUrl: chatMessages.gifUrl,
       gifTitle: chatMessages.gifTitle,
       createdAt: chatMessages.createdAt,
+      replyToId: chatMessages.replyToId,
       userId: users.id,
       userName: users.name,
       userImage: users.image,
+      replyToContent: replyMessages.content,
+      replyToGifTitle: replyMessages.gifTitle,
+      replyToUserName: replyUsers.name,
     })
     .from(chatMessages)
     .innerJoin(users, eq(chatMessages.userId, users.id))
+    .leftJoin(replyMessages, eq(chatMessages.replyToId, replyMessages.id))
+    .leftJoin(replyUsers, eq(replyMessages.userId, replyUsers.id))
     .orderBy(desc(chatMessages.createdAt))
     .limit(50)
+
   return rows.reverse()
 })
 
@@ -44,6 +57,7 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
       content: data.content?.trim() || null,
       gifUrl: data.gifUrl || null,
       gifTitle: data.gifTitle || null,
+      replyToId: data.replyToId ?? null,
     })
   })
 

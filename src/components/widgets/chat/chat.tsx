@@ -6,7 +6,7 @@ import { chatMessagesQueryOptions, chatUsersQueryOptions } from '@/lib/queries/c
 import { sendChatMessage } from '@/server/fns/chat-fns'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/components/ui/icons'
-import { ChatMessageItem } from './chat-message'
+import { ChatMessageItem, type ChatMessageData } from './chat-message'
 import { GiphyPicker } from './giphy-picker'
 import { MentionInput } from './mention-input'
 
@@ -17,6 +17,7 @@ export function Chat() {
   const [text, setText] = useState('')
   const [showGiphy, setShowGiphy] = useState(false)
   const [isNearBottom, setIsNearBottom] = useState(true)
+  const [replyTo, setReplyTo] = useState<ChatMessageData | null>(null)
 
   const { data: messages = [] } = useQuery(chatMessagesQueryOptions)
   const { data: chatUsers = [] } = useQuery(chatUsersQueryOptions)
@@ -41,19 +42,23 @@ export function Chat() {
     setIsNearBottom(distanceFromBottom < 80)
   }
 
+  const clearReply = () => setReplyTo(null)
+
   const handleSend = () => {
     const trimmed = text.trim()
     if (!trimmed || sendMutation.isPending) return
-    sendMutation.mutate({ data: { content: trimmed } })
+    sendMutation.mutate({ data: { content: trimmed, replyToId: replyTo?.id } })
     setText('')
     setShowGiphy(false)
     setIsNearBottom(true)
+    clearReply()
   }
 
   const handleGifSelect = ({ url, title }: { url: string; title: string }) => {
-    sendMutation.mutate({ data: { gifUrl: url, gifTitle: title } })
+    sendMutation.mutate({ data: { gifUrl: url, gifTitle: title, replyToId: replyTo?.id } })
     setShowGiphy(false)
     setIsNearBottom(true)
+    clearReply()
   }
 
   return (
@@ -81,12 +86,36 @@ export function Chat() {
             Be the first to say hello!
           </p>
         ) : (
-          messages.map((msg) => <ChatMessageItem key={msg.id} message={msg} />)
+          messages.map((msg) => (
+            <ChatMessageItem
+              key={msg.id}
+              message={msg}
+              onReply={session ? setReplyTo : undefined}
+            />
+          ))
         )}
       </div>
 
       {/* Input area */}
       <div className="border-t px-3 py-3 flex flex-col gap-2 shrink-0">
+        {replyTo && (
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50 text-xs text-muted-foreground">
+            <Icons.Reply className="h-3 w-3 shrink-0" />
+            <span className="flex-1 truncate">
+              Replying to <span className="font-medium text-foreground">{replyTo.userName}</span>
+              {replyTo.content ? `: ${replyTo.content}` : ''}
+            </span>
+            <button
+              type="button"
+              onClick={clearReply}
+              className="shrink-0 hover:text-foreground"
+              aria-label="Cancel reply"
+            >
+              <Icons.X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         {showGiphy && (
           <GiphyPicker onSelect={handleGifSelect} onClose={() => setShowGiphy(false)} />
         )}
@@ -99,7 +128,7 @@ export function Chat() {
               onSend={handleSend}
               users={chatUsers}
               disabled={sendMutation.isPending}
-              placeholder="Say something…"
+              placeholder={replyTo ? `Reply to ${replyTo.userName}…` : 'Say something…'}
             />
             <Button
               variant="ghost"

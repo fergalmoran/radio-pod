@@ -3,6 +3,11 @@ import { Icons } from '@/components/ui/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { Image } from '../images/image'
+
+function fmtTime(epochMs: number): string {
+  return new Date(epochMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
 export function OnAirNow() {
   const nowPlaying = useNowPlaying()
 
@@ -16,14 +21,22 @@ export function OnAirNow() {
   }
 
   const isEpisode = nowPlaying.type === 'episode'
+  const hasTiming = nowPlaying.startsAt !== undefined && nowPlaying.endsAt !== undefined
 
   return (
     <div className="rounded-lg border bg-card px-3 py-2.5 flex flex-col gap-2">
-      <div className="flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {isEpisode ? 'On Air' : 'radio'}
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {isEpisode ? 'On Air' : 'radio'}
+          </span>
+        </div>
+        {hasTiming && (
+          <span className="text-[10px] text-muted-foreground tabular-nums">
+            {fmtTime(nowPlaying.startsAt!)} – {fmtTime(nowPlaying.endsAt!)}
+          </span>
+        )}
       </div>
 
       {/* Track row */}
@@ -52,7 +65,6 @@ export function OnAirNow() {
             </TooltipTrigger>
             <TooltipContent>{nowPlaying.title}</TooltipContent>
           </Tooltip>
-
         </div>
       </div>
     </div>

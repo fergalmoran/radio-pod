@@ -1,0 +1,15 @@
+# Dev overrides: run only `icecast` and `liquidsoap` alongside `bun run dev`
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up icecast liquidsoap
+
+services:
+  liquidsoap:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      WEB_URL: http://host.docker.internal:3000
+      ICECAST_HOST: host.docker.internal   # connect via host to avoid inter-container network issues
+      ICECAST_PORT: "8001"                 # secondary port mapping that binds on all interfaces
+
+  icecast:
+    ports:
+      - "8001:8000"   # second binding on all interfaces; Liquidsoap reaches Icecast via host at this port

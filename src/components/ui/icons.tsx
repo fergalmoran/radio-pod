@@ -12,6 +12,7 @@ import {
   Heart,
   Monitor,
   Moon,
+  Pause,
   Play,
   Plus,
   Radio,
@@ -19,6 +20,7 @@ import {
   SkipForward,
   Sun,
   Volume2,
+  VolumeX,
   X,
 } from 'lucide-react'
 
@@ -76,6 +78,7 @@ export const Icons = {
   Heart,
   Monitor,
   Moon,
+  Pause,
   Play,
   Plus,
   Radio,
@@ -83,6 +86,7 @@ export const Icons = {
   SkipForward,
   Sun,
   Volume2,
+  VolumeX,
   X,
   GitHub,
   Google,

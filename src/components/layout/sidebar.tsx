@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { OnAirNow } from '../widgets/on-air-now'
 
 export function Sidebar() {
   return (
@@ -8,11 +9,7 @@ export function Sidebar() {
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">
           On Air Now
         </h3>
-        <div className="flex flex-col gap-2 px-2">
-          <Skeleton className="h-4 w-36 rounded" />
-          <Skeleton className="h-3 w-24 rounded" />
-          <Skeleton className="h-3 w-28 rounded" />
-        </div>
+        <OnAirNow />
       </section>
 
       <Separator />

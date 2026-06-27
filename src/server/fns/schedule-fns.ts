@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { and, gte, lt, asc, eq } from 'drizzle-orm'
+import { and, gte, gt, lt, asc, eq } from 'drizzle-orm'
 import { scheduleEpisode, cancelEpisode } from '@/lib/server/scheduler'
 
 type GetEpisodesInput = {
@@ -142,6 +142,28 @@ export const updateEpisode = createServerFn({ method: 'POST' })
 
     return episode
   })
+
+export const getUpNext = createServerFn({ method: 'GET' }).handler(async () => {
+  const { db } = await import('@/db')
+  const { episodes, shows } = await import('@/db/schema')
+
+  const [row] = await db
+    .select({
+      id: episodes.id,
+      title: episodes.title,
+      imageUrl: episodes.imageUrl,
+      broadcastAt: episodes.broadcastAt,
+      durationSeconds: episodes.durationSeconds,
+      showTitle: shows.title,
+    })
+    .from(episodes)
+    .leftJoin(shows, eq(shows.id, episodes.showId))
+    .where(gt(episodes.broadcastAt, new Date()))
+    .orderBy(asc(episodes.broadcastAt))
+    .limit(1)
+
+  return row ?? null
+})
 
 export const deleteEpisode = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data as { id: number })

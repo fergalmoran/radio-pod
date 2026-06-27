@@ -1,6 +1,9 @@
+import { Suspense } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { OnAirNow } from '../widgets/on-air-now'
+import { UpNext } from '../widgets/up-next'
+import { Chat } from '../widgets/chat/chat'
 
 export function Sidebar() {
   return (
@@ -18,24 +21,9 @@ export function Sidebar() {
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">
           Up Next
         </h3>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-8 w-full rounded-md" />
-          <Skeleton className="h-8 w-full rounded-md" />
-        </div>
-      </section>
-
-      <Separator />
-
-      <section>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">
-          Recent Episodes
-        </h3>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-8 w-full rounded-md" />
-          <Skeleton className="h-8 w-full rounded-md" />
-          <Skeleton className="h-8 w-4/5 rounded-md" />
-          <Skeleton className="h-8 w-full rounded-md" />
-        </div>
+        <Suspense fallback={<Skeleton className="h-16 w-full rounded-lg" />}>
+          <UpNext />
+        </Suspense>
       </section>
     </aside>
   )

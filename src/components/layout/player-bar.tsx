@@ -7,12 +7,13 @@ import { useNowPlaying } from '@/lib/use-now-playing'
 export function PlayerBar() {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [volume, setVolume] = useState(1)
+  const [volume, setVolume] = useState(() => parseFloat((typeof localStorage !== 'undefined' ? localStorage.getItem('player-volume') : null) ?? '1'))
   const [isMuted, setIsMuted] = useState(false)
   const nowPlaying = useNowPlaying()
 
   // Attempt autoplay on mount; if blocked, the play button handles it
   useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume
     audioRef.current?.play().catch(() => {})
   }, [])
 
@@ -39,6 +40,7 @@ export function PlayerBar() {
     setVolume(v)
     setIsMuted(v === 0)
     if (audioRef.current) audioRef.current.volume = v
+    localStorage.setItem('player-volume', String(v))
   }
 
   const streamUrl = import.meta.env.VITE_STREAM_URL ?? '/api/stream'

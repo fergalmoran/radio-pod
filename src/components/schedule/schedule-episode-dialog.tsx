@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Progress } from '@/components/ui/progress'
 import { createEpisode, updateEpisode } from '@/server/fns/schedule-fns'
 import { showsForUserQueryOptions } from '@/lib/queries'
 
@@ -60,6 +61,7 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: P
   const [imageUrl, setImageUrl] = useState('')
   const [audioUrl, setAudioUrl] = useState('')
   const [audioUploading, setAudioUploading] = useState(false)
+  const [audioProgress, setAudioProgress] = useState(0)
   const [imageUploading, setImageUploading] = useState(false)
 
   useEffect(() => {
@@ -81,27 +83,47 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: P
       setAudioUrl('')
     }
     setAudioUploading(false)
+    setAudioProgress(0)
     setImageUploading(false)
   }, [episode, defaultDate, open])
 
-  async function uploadFile(file: File, type: 'audio' | 'image'): Promise<string> {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', type)
-    const res = await fetch('/api/upload', { method: 'POST', body: formData })
-    if (!res.ok) throw new Error(await res.text())
-    const { url } = await res.json() as { url: string }
-    return url
+  function uploadFileWithProgress(
+    file: File,
+    type: 'audio' | 'image',
+    onProgress?: (pct: number) => void,
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', type)
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', '/api/upload')
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100))
+      }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const { url } = JSON.parse(xhr.responseText) as { url: string }
+          resolve(url)
+        } else {
+          reject(new Error(xhr.responseText))
+        }
+      }
+      xhr.onerror = () => reject(new Error('Upload failed'))
+      xhr.send(formData)
+    })
   }
 
   async function handleAudioChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setAudioUploading(true)
+    setAudioProgress(0)
     try {
-      setAudioUrl(await uploadFile(file, 'audio'))
+      setAudioUrl(await uploadFileWithProgress(file, 'audio', setAudioProgress))
     } finally {
       setAudioUploading(false)
+      setAudioProgress(0)
     }
   }
 
@@ -232,7 +254,12 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: P
               onChange={handleAudioChange}
               disabled={audioUploading}
             />
-            {audioUploading && <p className="text-xs text-muted-foreground">Uploading…</p>}
+            {audioUploading && (
+              <div className="space-y-1">
+                <Progress value={audioProgress} />
+                <p className="text-xs text-muted-foreground">{audioProgress < 100 ? `Uploading… ${audioProgress}%` : 'Processing…'}</p>
+              </div>
+            )}
             {audioUrl && !audioUploading && (
               <p className="text-xs text-muted-foreground truncate">{audioUrl.split('/').pop()}</p>
             )}

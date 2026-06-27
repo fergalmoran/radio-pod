@@ -107,10 +107,22 @@ export const savedEpisodes = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.episodeId] })],
 )
 
+export const chatMessages = pgTable('chat_messages', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content'),
+  gifUrl: text('gif_url'),
+  gifTitle: text('gif_title'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 // ─── types ────────────────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect
 export type Show = typeof shows.$inferSelect
 export type Episode = typeof episodes.$inferSelect
 export type SavedEpisode = typeof savedEpisodes.$inferSelect
+export type ChatMessage = typeof chatMessages.$inferSelect
 export type UserRole = typeof userRoleEnum.enumValues[number]

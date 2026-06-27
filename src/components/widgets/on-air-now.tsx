@@ -1,5 +1,6 @@
 import { useNowPlaying } from '@/lib/use-now-playing'
 import { Icons } from '@/components/ui/icons'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { Image } from '../images/image'
 export function OnAirNow() {
@@ -21,7 +22,7 @@ export function OnAirNow() {
       <div className="flex items-center gap-1.5">
         <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {isEpisode ? 'On Air' : 'Auto DJ'}
+          {isEpisode ? 'On Air' : 'radio'}
         </span>
       </div>
 
@@ -43,12 +44,15 @@ export function OnAirNow() {
         )}
 
         <div className="flex flex-col gap-0.5 min-w-0">
-          <p className="text-sm font-medium leading-snug line-clamp-2">
-            {nowPlaying.title}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">
-            {nowPlaying.artist}
-          </p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="text-sm font-medium leading-snug line-clamp-2 cursor-default">
+                {nowPlaying.title}
+              </p>
+            </TooltipTrigger>
+            <TooltipContent>{nowPlaying.title}</TooltipContent>
+          </Tooltip>
+
         </div>
       </div>
     </div>

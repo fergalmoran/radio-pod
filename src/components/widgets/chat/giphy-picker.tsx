@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 
 type GiphyGif = {
   id: string

@@ -63,11 +63,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
 function RootLayout() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col h-screen overflow-hidden">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0">
         <Sidebar />
-        <main className="flex-1 container mx-auto py-6 px-4 pb-24">
+        <main className="flex-1 overflow-y-auto container mx-auto py-6 px-4 pb-24">
           <Outlet />
         </main>
       </div>

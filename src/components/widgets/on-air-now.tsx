@@ -1,5 +1,5 @@
 import { useNowPlaying } from '@/lib/use-now-playing'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { Image } from '../images/image'

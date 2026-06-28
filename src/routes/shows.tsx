@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { showsQueryOptions } from '@/lib/queries'
 import { getRole, canCreateShow } from '@/lib/roles'
 import { siteSettings } from '@/lib/site-settings'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 
 export const Route = createFileRoute('/shows')({
   loader: async ({ context }) => {

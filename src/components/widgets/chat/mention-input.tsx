@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 export type MentionUser = { id: string; name: string; image: string | null }
+export type MentionInputHandle = { focus(): void }
 
 type Props = {
   value: string
@@ -22,10 +23,17 @@ function detectMention(
   return { search: match[1].toLowerCase(), start: before.length - match[0].length }
 }
 
-export function MentionInput({ value, onChange, onSend, users, disabled, placeholder }: Props) {
-  const ref = useRef<HTMLTextAreaElement>(null)
+export const MentionInput = forwardRef<MentionInputHandle, Props>(function MentionInput(
+  { value, onChange, onSend, users, disabled, placeholder },
+  ref,
+) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [mention, setMention] = useState<{ search: string; start: number } | null>(null)
   const [mentionIndex, setMentionIndex] = useState(0)
+
+  useImperativeHandle(ref, () => ({
+    focus() { textareaRef.current?.focus() },
+  }))
 
   const filteredUsers = mention
     ? users.filter((u) => u.name.toLowerCase().includes(mention.search)).slice(0, 5)
@@ -38,7 +46,7 @@ export function MentionInput({ value, onChange, onSend, users, disabled, placeho
 
   // Reset height when value is cleared externally (e.g. after send)
   useEffect(() => {
-    if (ref.current) autoResize(ref.current)
+    if (textareaRef.current) autoResize(textareaRef.current)
   }, [value])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -51,18 +59,18 @@ export function MentionInput({ value, onChange, onSend, users, disabled, placeho
 
   const insertMention = (user: MentionUser) => {
     if (!mention) return
-    const cursor = ref.current?.selectionStart ?? value.length
+    const cursor = textareaRef.current?.selectionStart ?? value.length
     const before = value.slice(0, mention.start)
     const after = value.slice(cursor)
     const next = `${before}@${user.name} ${after}`
     onChange(next)
     setMention(null)
     setTimeout(() => {
-      if (!ref.current) return
+      if (!textareaRef.current) return
       const pos = mention.start + user.name.length + 2
-      ref.current.focus()
-      ref.current.setSelectionRange(pos, pos)
-      autoResize(ref.current)
+      textareaRef.current.focus()
+      textareaRef.current.setSelectionRange(pos, pos)
+      autoResize(textareaRef.current)
     }, 0)
   }
 
@@ -118,7 +126,7 @@ export function MentionInput({ value, onChange, onSend, users, disabled, placeho
         </div>
       )}
       <textarea
-        ref={ref}
+        ref={textareaRef}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -130,4 +138,4 @@ export function MentionInput({ value, onChange, onSend, users, disabled, placeho
       />
     </div>
   )
-}
+})

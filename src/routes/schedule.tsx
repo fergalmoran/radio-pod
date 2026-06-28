@@ -6,7 +6,7 @@ import { MonthCalendar } from '@/components/schedule/month-calendar'
 import { ScheduleEpisodeDialog } from '@/components/schedule/schedule-episode-dialog'
 import { episodesForMonthQueryOptions, showsForUserQueryOptions } from '@/lib/queries'
 import { getRole, canSchedule } from '@/lib/roles'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 
 function getCurrentMonth() {
   const d = new Date()

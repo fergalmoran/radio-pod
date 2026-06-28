@@ -7,8 +7,8 @@ export const Route = createFileRoute('/')({
 
 function HomePage() {
   return (
-    <div className="flex gap-6 items-start">
-      <div className="flex-1 min-w-0 space-y-10">
+    <div className="flex gap-6 h-full">
+      <div className="flex-1 min-w-0 h-full">
         <Chat />
       </div>
     </div>

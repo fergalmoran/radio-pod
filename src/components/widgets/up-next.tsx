@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { upNextQueryOptions } from '@/lib/queries/episodes'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 import { Image } from '../images/image'
 
 function formatRelative(date: Date): string {

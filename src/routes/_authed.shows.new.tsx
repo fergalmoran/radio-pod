@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { createShow } from '@/server/fns/shows-fns'
 import { getRole, canCreateShow } from '@/lib/roles'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 
 export const Route = createFileRoute('/_authed/shows/new')({
   beforeLoad: ({ context }) => {

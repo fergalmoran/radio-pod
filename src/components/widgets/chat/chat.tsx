@@ -5,15 +5,17 @@ import { Link } from '@tanstack/react-router'
 import { chatMessagesQueryOptions, chatUsersQueryOptions } from '@/lib/queries/chat'
 import { sendChatMessage } from '@/server/fns/chat-fns'
 import { Button } from '@/components/ui/button'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 import { ChatMessageItem, type ChatMessageData } from './chat-message'
 import { GiphyPicker } from './giphy-picker'
-import { MentionInput } from './mention-input'
+import { MentionInput, type MentionInputHandle } from './mention-input'
 
 export function Chat() {
   const { session } = useRouteContext({ from: '__root__' })
   const queryClient = useQueryClient()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<MentionInputHandle>(null)
+  const hasInitialScrolled = useRef(false)
   const [text, setText] = useState('')
   const [showGiphy, setShowGiphy] = useState(false)
   const [isNearBottom, setIsNearBottom] = useState(true)
@@ -27,10 +29,15 @@ export function Chat() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] }),
   })
 
-  // Auto-scroll only when the user is near the bottom
   useEffect(() => {
     const el = scrollRef.current
-    if (el && isNearBottom) {
+    if (!el) return
+    if (!hasInitialScrolled.current && messages.length > 0) {
+      el.scrollTop = el.scrollHeight
+      hasInitialScrolled.current = true
+      return
+    }
+    if (isNearBottom) {
       el.scrollTop = el.scrollHeight
     }
   }, [messages, isNearBottom])
@@ -43,6 +50,16 @@ export function Chat() {
   }
 
   const clearReply = () => setReplyTo(null)
+
+  const handleReply = (msg: ChatMessageData) => {
+    setReplyTo(msg)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  const handleScrollToMessage = (id: number) => {
+    const el = scrollRef.current?.querySelector(`[data-message-id="${id}"]`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
 
   const handleSend = () => {
     const trimmed = text.trim()
@@ -90,7 +107,8 @@ export function Chat() {
             <ChatMessageItem
               key={msg.id}
               message={msg}
-              onReply={session ? setReplyTo : undefined}
+              onReply={session ? handleReply : undefined}
+              onScrollToMessage={handleScrollToMessage}
             />
           ))
         )}
@@ -123,6 +141,7 @@ export function Chat() {
         {session ? (
           <div className="flex gap-1.5 items-center">
             <MentionInput
+              ref={inputRef}
               value={text}
               onChange={setText}
               onSend={handleSend}

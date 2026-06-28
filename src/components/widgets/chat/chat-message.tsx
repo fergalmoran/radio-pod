@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 
 export type ChatMessageData = {
   id: number
@@ -40,9 +40,10 @@ function timeLabel(date: Date | string) {
 type Props = {
   message: ChatMessageData
   onReply?: (message: ChatMessageData) => void
+  onScrollToMessage?: (id: number) => void
 }
 
-export function ChatMessageItem({ message, onReply }: Props) {
+export function ChatMessageItem({ message, onReply, onScrollToMessage }: Props) {
   const initials = message.userName
     .split(' ')
     .map((n) => n[0])
@@ -55,7 +56,7 @@ export function ChatMessageItem({ message, onReply }: Props) {
     : null
 
   return (
-    <div className="flex gap-2 group">
+    <div className="flex gap-2 group" data-message-id={message.id}>
       <Avatar size="sm" className="mt-0.5 shrink-0">
         {message.userImage && (
           <AvatarImage src={message.userImage} alt={message.userName} />
@@ -79,11 +80,15 @@ export function ChatMessageItem({ message, onReply }: Props) {
         </div>
 
         {replyPreview && (
-          <div className="mt-0.5 mb-1 pl-2 border-l-2 border-muted-foreground/30 text-xs text-muted-foreground line-clamp-1">
+          <button
+            type="button"
+            onClick={() => message.replyToId && onScrollToMessage?.(message.replyToId)}
+            className="mt-0.5 mb-1 pl-2 border-l-2 border-muted-foreground/30 text-xs text-muted-foreground line-clamp-1 text-left hover:border-primary hover:text-foreground transition-colors"
+          >
             <span className="font-medium">{message.replyToUserName}</span>
             {': '}
             {replyPreview}
-          </div>
+          </button>
         )}
 
         {message.content && (

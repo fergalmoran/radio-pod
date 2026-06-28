@@ -1,7 +1,7 @@
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Icons } from '@/components/ui/icons'
+import { Icons } from '@/components/icons'
 
 async function signInWithSocial(provider: 'google' | 'github' | 'discord') {
   await authClient.signIn.social({ provider, callbackURL: '/' })

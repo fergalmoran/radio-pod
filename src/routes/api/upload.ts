@@ -28,7 +28,10 @@ export const Route = createFileRoute('/api/upload')({
         const allowed = type === 'audio' ? ALLOWED_AUDIO : ALLOWED_IMAGE
         if (!allowed.has(ext)) return new Response('Invalid file type', { status: 400 })
 
-        const dir = type === 'audio' ? process.env.AUDIO_DIR : process.env.IMAGE_DIR
+        const dir = type === 'audio' ?
+          `${process.env.AUDIO_DIR}` :
+          process.env.IMAGE_DIR
+
         if (!dir) return new Response('Storage directory not configured', { status: 500 })
 
         await mkdir(dir, { recursive: true })

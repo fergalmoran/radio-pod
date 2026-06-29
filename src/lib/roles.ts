@@ -7,7 +7,7 @@ export function getRole(session: Session | null): UserRole {
 }
 
 export function canSchedule(role: UserRole): boolean {
-  return role === 'admin' || role === 'editor' || role === 'dh'
+  return role === 'admin' || role === 'editor' || role === 'dj'
 }
 
 export function canManageAllShows(role: UserRole): boolean {
@@ -15,5 +15,5 @@ export function canManageAllShows(role: UserRole): boolean {
 }
 
 export function canCreateShow(role: UserRole): boolean {
-  return role === 'admin' || role === 'editor' || role === 'dh'
+  return role === 'admin' || role === 'editor'
 }

@@ -1,49 +1,98 @@
+# Production compose — all services for VPS deployment.
+#
+# Required env vars (put in .env.production on the server):
+#   DATABASE_URL
+#   BETTER_AUTH_SECRET
+#   BETTER_AUTH_URL
+#   ICECAST_SOURCE_PASSWORD
+#   ICECAST_ADMIN_PASSWORD
+#   ICECAST_HOSTNAME          (e.g. stream.surge.fm)
+#   ICECAST_ADMIN_EMAIL
+#
+# Media paths — set these to wherever your files live on the VPS, or leave
+# the defaults and create the directories under /opt/surge-fm/media/:
+#   MEDIA_SHOWS               path to show episode audio   (default: /opt/surge-fm/media/shows)
+#   MEDIA_IMAGES              path to show artwork         (default: /opt/surge-fm/media/images)
+#   MEDIA_DEADAIR             path to dead-air music       (default: /opt/surge-fm/media/deadair)
+#   MEDIA_JINGLES             path to jingle files         (default: /opt/surge-fm/media/jingles)
+
 services:
-  web:
-    build: .
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      LIQUIDSOAP_HOST: liquidsoap
-      LIQUIDSOAP_PORT: "1234"
-      LIQUIDSOAP_AUDIO_DIR: /mnt/audio/shows
-      VITE_STREAM_URL: /stream.mp3
-    volumes:
-      - /home/fergalm/working/media/audio/shows:/mnt/audio/shows:ro
-      - /mnt/audio/MuziQ/House:/mnt/deadair:ro
-    depends_on: [db, liquidsoap]
 
-  liquidsoap:
-    image: savonet/liquidsoap:v2.3.0
-    restart: unless-stopped
-    command: liquidsoap /etc/liquidsoap/radio.liq
-    volumes:
-      - ./liquidsoap/radio.liq:/etc/liquidsoap/radio.liq:ro
-      - /home/fergalm/working/media/audio/shows:/mnt/audio/shows:ro
-      - /mnt/audio/MuziQ/House:/mnt/deadair:ro
-    environment:
-      WEB_URL: http://web:3000
-    ports:
-      - "127.0.0.1:1234:1234"
-    depends_on: [icecast]
-
-  icecast:
-    image: infiniteproject/icecast
-    restart: unless-stopped
-    volumes:
-      - ./icecast/icecast.xml:/etc/icecast.xml:ro
-    ports:
-      - "127.0.0.1:8000:8000"
-
+  # ── Database ──────────────────────────────────────────────────────────────────
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: radio-pod
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: hackme
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d radio-pod"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Web app ───────────────────────────────────────────────────────────────────
+  web:
+    image: ghcr.io/fergalmoran/radio-pod:${APP_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      LIQUIDSOAP_HOST: liquidsoap
+      LIQUIDSOAP_PORT: "1234"
+      LIQUIDSOAP_AUDIO_DIR: /mnt/shows
+      ICECAST_HOST: icecast
+      ICECAST_PORT: "8000"
+      AUDIO_DIR: /mnt/shows
+      IMAGE_DIR: /mnt/images
+    volumes:
+      - ${MEDIA_SHOWS:-/opt/surge-fm/media/shows}:/mnt/shows
+      - ${MEDIA_IMAGES:-/opt/surge-fm/media/images}:/mnt/images
+      - ${MEDIA_DEADAIR:-/opt/surge-fm/media/deadair}:/mnt/deadair:ro
+      - ${MEDIA_JINGLES:-/opt/surge-fm/media/jingles}:/mnt/jingles:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      liquidsoap:
+        condition: service_started
+
+  # ── Liquidsoap ────────────────────────────────────────────────────────────────
+  liquidsoap:
+    image: savonet/liquidsoap:v2.3.0
+    restart: unless-stopped
+    command: liquidsoap /etc/liquidsoap/radio.liq
+    environment:
+      WEB_URL: http://web:3000
+    volumes:
+      - ./liquidsoap/radio.liq:/etc/liquidsoap/radio.liq:ro
+      - ${MEDIA_SHOWS:-/opt/surge-fm/media/shows}:/mnt/shows:ro
+      - ${MEDIA_DEADAIR:-/opt/surge-fm/media/deadair}:/mnt/deadair:ro
+      - ${MEDIA_JINGLES:-/opt/surge-fm/media/jingles}:/mnt/jingles:ro
+    ports:
+      - "127.0.0.1:1234:1234"
+    depends_on:
+      - icecast
+
+  # ── Icecast ───────────────────────────────────────────────────────────────────
+  icecast:
+    image: infiniteproject/icecast
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/tmp/icecast-entrypoint.sh"]
+    environment:
+      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD:?ICECAST_SOURCE_PASSWORD is required}
+      ICECAST_ADMIN_PASSWORD: ${ICECAST_ADMIN_PASSWORD:?ICECAST_ADMIN_PASSWORD is required}
+      ICECAST_ADMIN_EMAIL: ${ICECAST_ADMIN_EMAIL:-admin@surge.fm}
+      ICECAST_HOSTNAME: ${ICECAST_HOSTNAME:-localhost}
+    volumes:
+      - ./icecast/icecast.xml.tpl:/tmp/icecast.xml.tpl:ro
+      - ./icecast/entrypoint.sh:/tmp/icecast-entrypoint.sh:ro
+    ports:
+      - "127.0.0.1:8000:8000"
 
 volumes:
   postgres_data:

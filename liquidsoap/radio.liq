@@ -17,16 +17,16 @@ now_playing_url = web_url ^ "/api/liquidsoap/now-playing"
 icecast_password =
   try
     fetched = string.trim(http.get(web_url ^ "/api/liquidsoap/config"))
-    if fetched == "" then environment.get("ICECAST_PASSWORD", default="changeme")
+    if fetched == "" then environment.get("ICECAST_SOURCE_PASSWORD", default="changeme")
     else fetched
     end
   catch _ do
-    environment.get("ICECAST_PASSWORD", default="changeme")
+    environment.get("ICECAST_SOURCE_PASSWORD", default="changeme")
   end
 
 # ICECAST_HOST is overridden to host.docker.internal in docker-compose.dev.yml
 # to route via the host network; in prod it stays "icecast" (Docker service name).
-deadair_dir = "/mnt/deadair"
+deadair_dir = environment.get("DEADAIR_DIR", default="/mnt/deadair")
 icecast_host = environment.get("ICECAST_HOST", default="icecast")
 icecast_port = int_of_string(default=8000, environment.get("ICECAST_PORT", default="8000"))
 

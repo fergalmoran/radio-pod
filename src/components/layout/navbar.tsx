@@ -10,17 +10,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { siteSettings } from '@/lib/site-settings'
+import { getRole } from '@/lib/roles'
+import { useSiteSettings } from '@/lib/use-site-settings'
+
 export function Navbar() {
   const { session } = useRouteContext({ from: '__root__' })
+  const role = getRole(session)
   const navigate = useNavigate()
-
+  const settings = useSiteSettings();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-14 items-center gap-4 px-4">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg">
           <img src="/logo.png" className="h-6 w-6" alt="" />
-          {siteSettings.name}
+          {settings.name}
         </Link>
 
         <nav className="flex items-center gap-1 ml-2">
@@ -85,6 +88,16 @@ export function Navbar() {
                 <DropdownMenuItem disabled className="text-xs text-muted-foreground">
                   {session.user.email}
                 </DropdownMenuItem>
+                {role === 'admin' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="cursor-pointer w-full">
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() =>

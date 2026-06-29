@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { Icons } from '../ui/icons'
+import { Icons } from '../icons'
 
 type Episode = {
   id: number

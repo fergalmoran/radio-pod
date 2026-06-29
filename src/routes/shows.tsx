@@ -5,6 +5,7 @@ import { showsQueryOptions } from '@/lib/queries'
 import { getRole, canCreateShow } from '@/lib/roles'
 import { siteSettings } from '@/lib/site-settings'
 import { Icons } from '@/components/icons'
+import { useSiteSettings } from '@/lib/use-site-settings'
 
 export const Route = createFileRoute('/shows')({
   loader: async ({ context }) => {
@@ -17,13 +18,13 @@ export const Route = createFileRoute('/shows')({
 function ShowsPage() {
   const { canCreate } = Route.useLoaderData()
   const { data: shows } = useSuspenseQuery(showsQueryOptions)
-
+  const settings = useSiteSettings();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-1">Shows</h1>
-          <p className="text-muted-foreground">All programmes on {siteSettings.name}.</p>
+          <p className="text-muted-foreground">All programmes on {settings.name}.</p>
         </div>
         {canCreate && (
           <Button asChild size="sm">

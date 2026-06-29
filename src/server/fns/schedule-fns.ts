@@ -63,7 +63,7 @@ export const createEpisode = createServerFn({ method: 'POST' })
     const role = getRole(session)
     if (!canSchedule(role)) throw new Error('Forbidden')
 
-    // dh: verify the show belongs to them if one is specified
+    // dj: verify the show belongs to them if one is specified
     if (data.showId && !canManageAllShows(role)) {
       const [show] = await db.select().from(shows).where(eq(shows.id, data.showId))
       if (!show || show.hostUserId !== session.user.id) {

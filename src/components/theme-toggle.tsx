@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Icons } from './ui/icons'
+import { Icons } from './icons'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
 

@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Icons } from '@/components/icons'
+import { cn } from '@/lib/utils'
 
 export type ChatMessageData = {
   id: number
@@ -14,6 +15,13 @@ export type ChatMessageData = {
   replyToContent: string | null
   replyToGifTitle: string | null
   replyToUserName: string | null
+}
+
+export function isMentionedInMessage(message: ChatMessageData, userName: string): boolean {
+  const mentionPattern = new RegExp(`@${userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+  if (message.content && mentionPattern.test(message.content)) return true
+  if (message.replyToUserName?.toLowerCase() === userName.toLowerCase()) return true
+  return false
 }
 
 function parseContent(content: string) {
@@ -39,11 +47,12 @@ function timeLabel(date: Date | string) {
 
 type Props = {
   message: ChatMessageData
+  currentUserName?: string
   onReply?: (message: ChatMessageData) => void
   onScrollToMessage?: (id: number) => void
 }
 
-export function ChatMessageItem({ message, onReply, onScrollToMessage }: Props) {
+export function ChatMessageItem({ message, currentUserName, onReply, onScrollToMessage }: Props) {
   const initials = message.userName
     .split(' ')
     .map((n) => n[0])
@@ -55,13 +64,21 @@ export function ChatMessageItem({ message, onReply, onScrollToMessage }: Props) 
     ? message.replyToContent ?? (message.replyToGifTitle ? `GIF: ${message.replyToGifTitle}` : null)
     : null
 
+  const highlighted = !!currentUserName && isMentionedInMessage(message, currentUserName)
+
   return (
-    <div className="flex gap-2 group" data-message-id={message.id}>
-      <Avatar size="sm" className="mt-0.5 shrink-0">
+    <div
+      className={cn(
+        'flex gap-2 group rounded-md px-1 py-0.5 -mx-1',
+        highlighted && 'bg-primary/10 border-l-2 border-primary pl-2',
+      )}
+      data-message-id={message.id}
+    >
+      <Avatar className="h-6 w-6 mt-0.5 shrink-0">
         {message.userImage && (
           <AvatarImage src={message.userImage} alt={message.userName} />
         )}
-        <AvatarFallback>{initials}</AvatarFallback>
+        <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5 flex-wrap">

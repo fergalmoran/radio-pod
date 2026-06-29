@@ -10,7 +10,7 @@ import {
   primaryKey,
 } from 'drizzle-orm/pg-core'
 
-export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'dh', 'admin'])
+export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'dj', 'admin'])
 
 // ─── better-auth tables ───────────────────────────────────────────────────────
 
@@ -119,6 +119,12 @@ export const chatMessages = pgTable('chat_messages', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const siteSettings = pgTable('site_settings', {
+  key: text('key').primaryKey(),
+  value: text('value'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
 // ─── types ────────────────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect
@@ -127,3 +133,4 @@ export type Episode = typeof episodes.$inferSelect
 export type SavedEpisode = typeof savedEpisodes.$inferSelect
 export type ChatMessage = typeof chatMessages.$inferSelect
 export type UserRole = typeof userRoleEnum.enumValues[number]
+export type SiteSetting = typeof siteSettings.$inferSelect

@@ -6,9 +6,23 @@ import { chatMessagesQueryOptions, chatUsersQueryOptions } from '@/lib/queries/c
 import { sendChatMessage } from '@/server/fns/chat-fns'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/components/icons'
-import { ChatMessageItem, type ChatMessageData } from './chat-message'
+import { ChatMessageItem, isMentionedInMessage, type ChatMessageData } from './chat-message'
 import { GiphyPicker } from './giphy-picker'
 import { MentionInput, type MentionInputHandle } from './mention-input'
+
+function playPing() {
+  const ctx = new AudioContext()
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.type = 'sine'
+  osc.frequency.value = 880
+  gain.gain.setValueAtTime(0.25, ctx.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+  osc.start(ctx.currentTime)
+  osc.stop(ctx.currentTime + 0.4)
+}
 
 export function Chat() {
   const { session } = useRouteContext({ from: '__root__' })
@@ -16,6 +30,7 @@ export function Chat() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<MentionInputHandle>(null)
   const hasInitialScrolled = useRef(false)
+  const prevMessageIdsRef = useRef<Set<number>>(new Set())
   const [text, setText] = useState('')
   const [showGiphy, setShowGiphy] = useState(false)
   const [isNearBottom, setIsNearBottom] = useState(true)
@@ -23,6 +38,20 @@ export function Chat() {
 
   const { data: messages = [] } = useQuery(chatMessagesQueryOptions)
   const { data: chatUsers = [] } = useQuery(chatUsersQueryOptions)
+  const currentUserName = session?.user.name
+
+  useEffect(() => {
+    const known = prevMessageIdsRef.current
+    if (known.size === 0) {
+      messages.forEach((m) => known.add(m.id))
+      return
+    }
+    const newMessages = messages.filter((m) => !known.has(m.id))
+    newMessages.forEach((m) => known.add(m.id))
+    if (currentUserName && newMessages.some((m) => isMentionedInMessage(m, currentUserName))) {
+      playPing()
+    }
+  }, [messages, currentUserName])
 
   const sendMutation = useMutation({
     mutationFn: sendChatMessage,
@@ -107,6 +136,7 @@ export function Chat() {
             <ChatMessageItem
               key={msg.id}
               message={msg}
+              currentUserName={currentUserName}
               onReply={session ? handleReply : undefined}
               onScrollToMessage={handleScrollToMessage}
             />

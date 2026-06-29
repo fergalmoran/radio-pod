@@ -43,6 +43,6 @@ PGPASSWORD="$DB_PASS" psql \
 
 echo "Running migrations..."
 cd "$ROOT_DIR"
-bun run db:push
+bun run db:migrate
 
 echo "Done."

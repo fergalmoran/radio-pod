@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Icons } from '../ui/icons'
+import { Icons } from '../icons'
 import { useNowPlaying } from '@/lib/use-now-playing'
+import { useSiteSettings } from '@/lib/use-site-settings'
 
 export function PlayerBar() {
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -14,7 +15,7 @@ export function PlayerBar() {
   // Attempt autoplay on mount; if blocked, the play button handles it
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume
-    audioRef.current?.play().catch(() => {})
+    audioRef.current?.play().catch(() => { })
   }, [])
 
   const togglePlay = () => {
@@ -23,7 +24,7 @@ export function PlayerBar() {
     if (isPlaying) {
       audio.pause()
     } else {
-      audio.play().catch(() => {})
+      audio.play().catch(() => { })
     }
   }
 
@@ -42,6 +43,8 @@ export function PlayerBar() {
     if (audioRef.current) audioRef.current.volume = v
     localStorage.setItem('player-volume', String(v))
   }
+
+  const settings = useSiteSettings();
 
   const streamUrl = import.meta.env.VITE_STREAM_URL ?? '/api/stream'
 
@@ -70,7 +73,7 @@ export function PlayerBar() {
           )}
           <div className="flex flex-col gap-0.5 min-w-0">
             <p className="text-sm font-medium truncate leading-none">
-              {nowPlaying?.title ?? 'Surge FM'}
+              {nowPlaying?.title ?? { settings.name }}
             </p>
             <p className="text-xs text-muted-foreground truncate">
               {nowPlaying?.artist ?? 'Robot Powered Radio'}

@@ -13,7 +13,8 @@ import { ThemeProvider } from 'next-themes'
 import appCss from '@/app.css?url'
 import { getSession } from '@/server/fns/auth-fns'
 import type { Session } from '@/lib/auth'
-import { siteSettings } from '@/lib/site-settings'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { publicSiteSettingsQueryOptions } from '@/lib/queries/site-settings'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
 
@@ -23,18 +24,20 @@ interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: siteSettings.name },
-    ],
-    links: [{ rel: 'stylesheet', href: appCss }],
-  }),
   beforeLoad: async () => {
     const session = await getSession()
     return { session }
   },
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(publicSiteSettingsQueryOptions),
+  head: ({ loaderData }) => ({
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: loaderData?.name ??  'Surge FM' },
+    ],
+    links: [{ rel: 'stylesheet', href: appCss }],
+  }),
   shellComponent: RootDocument,
   component: RootLayout,
   notFoundComponent: NotFound,
@@ -51,8 +54,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-            <Toaster />
+            <TooltipProvider>
+              {children}
+              <Toaster />
+            </TooltipProvider>
           </ThemeProvider>
         </QueryClientProvider>
         <Scripts />

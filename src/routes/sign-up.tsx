@@ -12,8 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { siteSettings } from '@/lib/site-settings'
 import { SocialAuthButtons } from '@/components/auth/social-auth-buttons'
+import { useSiteSettings } from '@/lib/use-site-settings'
 
 export const Route = createFileRoute('/sign-up')({
   beforeLoad: ({ context }) => {
@@ -29,6 +29,8 @@ function SignUpPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+
+  const settings = useSiteSettings();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -53,7 +55,7 @@ function SignUpPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Create account</CardTitle>
-          <CardDescription>Join {siteSettings.name} today</CardDescription>
+          <CardDescription>Join {settings.name} today</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <SocialAuthButtons action="Sign up" />

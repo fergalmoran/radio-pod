@@ -5,6 +5,7 @@ import { gt, and, lte, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { episodes, shows } from '@/db/schema'
 import { setNowPlaying, markEpisodeStart, pollIcecastNowPlaying } from './now-playing'
+import { getSiteSettings } from './site-settings'
 
 type EpisodeJob = {
   id: number
@@ -58,7 +59,7 @@ const resumeCurrentEpisode = async (): Promise<void> => {
         setNowPlaying({
           type: 'episode',
           title: row.title,
-          artist: row.showTitle ?? 'Surge FM',
+          artist: row.showTitle ?? (await getSiteSettings()).name,
           imageUrl: row.imageUrl ?? undefined,
           startsAt: row.broadcastAt.getTime(),
           endsAt,
@@ -131,7 +132,7 @@ const onEpisodeStart = async (episode: EpisodeJob): Promise<void> => {
   setNowPlaying({
     type: 'episode',
     title: episode.title,
-    artist: episode.showTitle ?? 'Surge FM',
+    artist: episode.showTitle ?? (await getSiteSettings()).name,
     imageUrl: episode.imageUrl ?? undefined,
     startsAt,
     endsAt,

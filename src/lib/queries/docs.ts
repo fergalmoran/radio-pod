@@ -2,10 +2,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { queryOptions } from '@tanstack/react-query'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { getSiteSettings } from '@/lib/server/site-settings'
 
-const TITLES: Record<string, string> = {
-  PRIVACY: 'Privacy Policy - Surge FM',
-  GDPR: 'GDPR Compliance - Surge FM',
+const DOC_LABELS: Record<string, string> = {
+  PRIVACY: 'Privacy Policy',
+  GDPR: 'GDPR Compliance',
 }
 
 export const fetchDoc = createServerFn({ method: 'GET' })
@@ -14,7 +15,9 @@ export const fetchDoc = createServerFn({ method: 'GET' })
     const slug = page.toUpperCase()
     const docPath = join(process.cwd(), 'docs', `${slug}.md`)
     if (!existsSync(docPath)) return null
-    return { markdownContent: readFileSync(docPath, 'utf8'), title: TITLES[slug] ?? `${slug} - OpenGifame` }
+    const { name: siteName } = await getSiteSettings()
+    const label = DOC_LABELS[slug] ?? slug
+    return { markdownContent: readFileSync(docPath, 'utf8'), title: `${label} - ${siteName}` }
   })
 
 export const docQueryOptions = (page: string) =>

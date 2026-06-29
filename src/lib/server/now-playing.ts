@@ -1,4 +1,5 @@
 import '@tanstack/react-start/server-only'
+import { getSiteSettings } from './site-settings'
 
 export type NowPlayingState = {
   type: 'episode' | 'dead-air'
@@ -65,10 +66,11 @@ export const pollIcecastNowPlaying = async (): Promise<void> => {
       ? data.icestats.source[0]
       : data.icestats.source
     if (!src) return
+    const { name } = await getSiteSettings()
     setNowPlaying({
       type: 'dead-air',
-      title: src.title ?? 'Surge FM',
-      artist: src.artist ?? 'Surge FM',
+      title: src.title ?? name,
+      artist: src.artist ?? name,
     })
   } catch {
     // Icecast not reachable yet — no-op

@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import type { UserRole } from '@/db/schema'
+import { siteSettings as defaults } from '@/lib/site-settings'
 
 type MailSettingsInput = {
   host: string
@@ -69,15 +70,15 @@ const fetchSiteSettings = async () => {
   const rows = await db.select().from(settingsTable).where(inArray(settingsTable.key, [...SITE_KEYS]))
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value ?? '']))
   return {
-    name: map['site.name'] ?? 'Surge FM',
-    tagline: map['site.tagline'] ?? 'Robot Powered Radio',
-    description: map['site.description'] ?? '',
-    logoUrl: map['site.logoUrl'] ?? '',
-    faviconUrl: map['site.faviconUrl'] ?? '',
+    name: map['site.name'] ?? defaults.name,
+    tagline: map['site.tagline'] ?? defaults.tagline,
+    description: map['site.description'] ?? defaults.description ?? '',
+    logoUrl: map['site.logoUrl'] ?? defaults.logoUrl ?? '',
+    faviconUrl: map['site.faviconUrl'] ?? defaults.faviconUrl ?? '',
     social: {
-      twitter: map['site.social.twitter'] ?? '',
-      facebook: map['site.social.facebook'] ?? '',
-      instagram: map['site.social.instagram'] ?? '',
+      twitter: map['site.social.twitter'] ?? defaults.social.twitter ?? '',
+      facebook: map['site.social.facebook'] ?? defaults.social.facebook ?? '',
+      instagram: map['site.social.instagram'] ?? defaults.social.instagram ?? '',
     },
   }
 }

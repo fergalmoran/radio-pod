@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { setNowPlaying, isEpisodeExpected } from '@/lib/server/now-playing'
 import { ensureRunning } from '@/lib/server/scheduler'
+import { getSiteSettings } from '@/lib/server/site-settings'
 
 export const Route = createFileRoute('/api/liquidsoap/now-playing')({
   server: {
@@ -23,13 +24,14 @@ export const Route = createFileRoute('/api/liquidsoap/now-playing')({
           return new Response(null, { status: 204 })
         }
 
+        const { name: siteName } = await getSiteSettings()
         const displayTitle =
-          title || filename.split('/').pop()?.replace(/\.[^.]+$/, '') || 'Surge FM'
+          title || filename.split('/').pop()?.replace(/\.[^.]+$/, '') || siteName
 
         setNowPlaying({
           type: isEpisode ? 'episode' : 'dead-air',
           title: displayTitle,
-          artist: isEpisode ? (artist || 'Surge FM') : 'Surge FM',
+          artist: isEpisode ? (artist || siteName) : siteName,
         })
 
         return new Response(null, { status: 204 })

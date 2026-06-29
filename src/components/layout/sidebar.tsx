@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { OnAirNow } from '../widgets/on-air-now'
 import { UpNext } from '../widgets/up-next'
-import { Chat } from '../widgets/chat/chat'
+
 
 export const Sidebar = () => {
   return (

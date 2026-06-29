@@ -73,13 +73,13 @@ export const PlayerBar = () => {
           )}
           <div className="flex flex-col gap-0.5 min-w-0">
             <p className="text-sm font-medium truncate leading-none">
-              {nowPlaying?.title ?? { settings.name }}
+              {nowPlaying?.title ?? settings.name}
             </p>
             <p className="text-xs text-muted-foreground truncate">
               {nowPlaying?.artist ?? 'Robot Powered Radio'}
             </p>
           </div>
-          <Button variant="ghost" size="icon-sm" className="shrink-0" aria-label="Favorite">
+          <Button variant="ghost" size="icon" className="shrink-0" aria-label="Favorite">
             <Icons.Heart className="h-4 w-4" />
           </Button>
         </div>
@@ -88,7 +88,7 @@ export const PlayerBar = () => {
 
         {/* Playback controls */}
         <div className="flex items-center gap-1 mx-auto">
-          <Button variant="ghost" size="icon-sm" aria-label="Previous" disabled>
+          <Button variant="ghost" size="icon" aria-label="Previous" disabled>
             <Icons.SkipBack className="h-4 w-4" />
           </Button>
           <Button size="icon" aria-label="Play / Pause" onClick={togglePlay}>
@@ -98,7 +98,7 @@ export const PlayerBar = () => {
               <Icons.Play className="h-4 w-4" />
             )}
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Next" disabled>
+          <Button variant="ghost" size="icon" aria-label="Next" disabled>
             <Icons.SkipForward className="h-4 w-4" />
           </Button>
         </div>

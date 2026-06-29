@@ -9,6 +9,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "lint": "oxlint src/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -84,6 +85,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "dotenv": "^17.4.2",
+    "oxlint": "^1.71.0",
     "typescript": "^6.0.3",
     "vite": "^8.1.0"
   }

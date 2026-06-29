@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { writeFile, mkdir } from 'node:fs/promises'
-import { join, extname, basename } from 'node:path'
+import { join, extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 export const Route = createFileRoute('/api/upload')({

@@ -3,7 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { showsQueryOptions } from '@/lib/queries'
 import { getRole, canCreateShow } from '@/lib/roles'
-import { siteSettings } from '@/lib/site-settings'
+
 import { Icons } from '@/components/icons'
 import { useSiteSettings } from '@/lib/use-site-settings'
 

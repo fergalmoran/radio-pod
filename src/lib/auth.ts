@@ -6,7 +6,7 @@ import { count, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import * as schema from '@/db/schema'
 
-function createAuth() {
+const createAuth = () => {
   return betterAuth({
     baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
@@ -70,7 +70,7 @@ function createAuth() {
 
 let _auth: ReturnType<typeof createAuth> | undefined
 
-export function getAuth() {
+export const getAuth = () => {
   if (!_auth) _auth = createAuth()
   return _auth
 }

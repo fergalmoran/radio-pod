@@ -24,11 +24,11 @@ type Props = {
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MAX_VISIBLE = 3
 
-function formatTime(date: Date | string) {
+const formatTime = (date: Date | string) => {
   return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function isSameDay(a: Date | string, b: Date) {
+const isSameDay = (a: Date | string, b: Date) => {
   const da = new Date(a)
   return (
     da.getFullYear() === b.getFullYear() &&
@@ -37,7 +37,7 @@ function isSameDay(a: Date | string, b: Date) {
   )
 }
 
-export function MonthCalendar({ month, episodes, canSchedule, onSchedule, onEdit }: Props) {
+export const MonthCalendar = ({ month, episodes, canSchedule, onSchedule, onEdit }: Props) => {
   const [year, monthNum] = month.split('-').map(Number)
   const today = new Date()
 

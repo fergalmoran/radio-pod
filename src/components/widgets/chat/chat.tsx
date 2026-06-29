@@ -10,7 +10,7 @@ import { ChatMessageItem, isMentionedInMessage, type ChatMessageData } from './c
 import { GiphyPicker } from './giphy-picker'
 import { MentionInput, type MentionInputHandle } from './mention-input'
 
-function playPing() {
+const playPing = () => {
   const ctx = new AudioContext()
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
@@ -24,7 +24,7 @@ function playPing() {
   osc.stop(ctx.currentTime + 0.4)
 }
 
-export function Chat() {
+export const Chat = () => {
   const { session } = useRouteContext({ from: '__root__' })
   const queryClient = useQueryClient()
   const scrollRef = useRef<HTMLDivElement>(null)

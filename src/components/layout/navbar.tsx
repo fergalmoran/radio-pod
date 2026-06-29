@@ -13,7 +13,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { getRole } from '@/lib/roles'
 import { useSiteSettings } from '@/lib/use-site-settings'
 
-export function Navbar() {
+export const Navbar = () => {
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
   const navigate = useNavigate()

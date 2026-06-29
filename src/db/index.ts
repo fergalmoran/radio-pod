@@ -5,7 +5,7 @@ import { Pool } from '@neondatabase/serverless'
 import { drizzle as drizzleNeon } from 'drizzle-orm/neon-serverless'
 import * as schema from './schema.ts'
 
-function createDb() {
+const createDb = () => {
   if (process.env.DATABASE_DRIVER === 'neon') {
     return drizzleNeon(new Pool({ connectionString: process.env.DATABASE_URL }), { schema })
   }

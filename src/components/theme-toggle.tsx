@@ -4,14 +4,14 @@ import { Icons } from './icons'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
 
-function getInitialMode(): ThemeMode {
+const getInitialMode = (): ThemeMode => {
   if (typeof window === 'undefined') return 'auto'
   const stored = window.localStorage.getItem('theme')
   if (stored === 'light' || stored === 'dark' || stored === 'auto') return stored
   return 'auto'
 }
 
-function applyThemeMode(mode: ThemeMode) {
+const applyThemeMode = (mode: ThemeMode) => {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const resolved = mode === 'auto' ? (prefersDark ? 'dark' : 'light') : mode
   document.documentElement.classList.remove('light', 'dark')
@@ -19,7 +19,7 @@ function applyThemeMode(mode: ThemeMode) {
   document.documentElement.style.colorScheme = resolved
 }
 
-export function ThemeToggle() {
+export const ThemeToggle = () => {
   const [mode, setMode] = useState<ThemeMode>('auto')
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function ThemeToggle() {
     return () => media.removeEventListener('change', onChange)
   }, [mode])
 
-  function toggleMode() {
+  const toggleMode = () => {
     const nextMode: ThemeMode =
       mode === 'light' ? 'dark' : mode === 'dark' ? 'auto' : 'light'
     setMode(nextMode)

@@ -8,37 +8,23 @@ import { episodesForMonthQueryOptions, showsForUserQueryOptions } from '@/lib/qu
 import { getRole, canSchedule } from '@/lib/roles'
 import { Icons } from '@/components/icons'
 
-function getCurrentMonth() {
+const getCurrentMonth = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function shiftMonth(month: string, delta: number) {
+const shiftMonth = (month: string, delta: number) => {
   const [y, m] = month.split('-').map(Number)
   const d = new Date(y, m - 1 + delta, 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function formatMonthTitle(month: string) {
+const formatMonthTitle = (month: string) => {
   const [y, m] = month.split('-').map(Number)
   return new Date(y, m - 1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
 }
 
-export const Route = createFileRoute('/schedule')({
-  validateSearch: (search): { month?: string } => ({
-    month: typeof search.month === 'string' ? search.month : undefined,
-  }),
-  loaderDeps: ({ search }) => ({ month: search.month ?? getCurrentMonth() }),
-  loader: async ({ deps, context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(episodesForMonthQueryOptions(deps.month)),
-      context.queryClient.ensureQueryData(showsForUserQueryOptions),
-    ])
-  },
-  component: SchedulePage,
-})
-
-function SchedulePage() {
+const SchedulePage = () => {
   const { month: monthParam } = Route.useSearch()
   const month = monthParam ?? getCurrentMonth()
 
@@ -53,17 +39,17 @@ function SchedulePage() {
   const [dialogDate, setDialogDate] = useState<Date | null>(null)
   const [editingEpisode, setEditingEpisode] = useState<(typeof episodes)[number] | null>(null)
 
-  function goToMonth(delta: number) {
+  const goToMonth = (delta: number) => {
     navigate({ search: { month: shiftMonth(month, delta) } })
   }
 
-  function handleSchedule(date: Date) {
+  const handleSchedule = (date: Date) => {
     setEditingEpisode(null)
     setDialogDate(date)
     setDialogOpen(true)
   }
 
-  function handleEdit(episode: (typeof episodes)[number]) {
+  const handleEdit = (episode: (typeof episodes)[number]) => {
     setEditingEpisode(episode)
     setDialogOpen(true)
   }
@@ -123,3 +109,17 @@ function SchedulePage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/schedule')({
+  validateSearch: (search): { month?: string } => ({
+    month: typeof search.month === 'string' ? search.month : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ month: search.month ?? getCurrentMonth() }),
+  loader: async ({ deps, context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(episodesForMonthQueryOptions(deps.month)),
+      context.queryClient.ensureQueryData(showsForUserQueryOptions),
+    ])
+  },
+  component: SchedulePage,
+})

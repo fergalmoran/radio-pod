@@ -9,15 +9,7 @@ import { createShow } from '@/server/fns/shows-fns'
 import { getRole, canCreateShow } from '@/lib/roles'
 import { Icons } from '@/components/icons'
 
-export const Route = createFileRoute('/_authed/shows/new')({
-  beforeLoad: ({ context }) => {
-    const role = getRole(context.session)
-    if (!canCreateShow(role)) throw redirect({ to: '/' })
-  },
-  component: NewShowPage,
-})
-
-function NewShowPage() {
+const NewShowPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -46,7 +38,7 @@ function NewShowPage() {
     },
   })
 
-  function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     mutation.mutate()
   }
@@ -146,3 +138,11 @@ function NewShowPage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/_authed/shows/new')({
+  beforeLoad: ({ context }) => {
+    const role = getRole(context.session)
+    if (!canCreateShow(role)) throw redirect({ to: '/' })
+  },
+  component: NewShowPage,
+})

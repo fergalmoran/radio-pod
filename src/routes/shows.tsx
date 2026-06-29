@@ -7,15 +7,7 @@ import { siteSettings } from '@/lib/site-settings'
 import { Icons } from '@/components/icons'
 import { useSiteSettings } from '@/lib/use-site-settings'
 
-export const Route = createFileRoute('/shows')({
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(showsQueryOptions)
-    return { canCreate: canCreateShow(getRole(context.session)) }
-  },
-  component: ShowsPage,
-})
-
-function ShowsPage() {
+const ShowsPage = () => {
   const { canCreate } = Route.useLoaderData()
   const { data: shows } = useSuspenseQuery(showsQueryOptions)
   const settings = useSiteSettings();
@@ -81,3 +73,11 @@ function ShowsPage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/shows')({
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(showsQueryOptions)
+    return { canCreate: canCreateShow(getRole(context.session)) }
+  },
+  component: ShowsPage,
+})

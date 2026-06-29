@@ -4,11 +4,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils'
 import { Image } from '../images/image'
 
-function fmtTime(epochMs: number): string {
+const fmtTime = (epochMs: number): string => {
   return new Date(epochMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-export function OnAirNow() {
+export const OnAirNow = () => {
   const nowPlaying = useNowPlaying()
 
   if (!nowPlaying) {

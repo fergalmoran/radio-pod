@@ -15,7 +15,7 @@ const defaultData = {
   },
 }
 
-export function useSiteSettings() {
+export const useSiteSettings = () => {
   const { data } = useQuery({
     ...publicSiteSettingsQueryOptions,
     initialData: defaultData,

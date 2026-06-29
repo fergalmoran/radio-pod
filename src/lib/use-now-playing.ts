@@ -9,7 +9,7 @@ export type NowPlayingState = {
   endsAt?: number   // epoch ms
 }
 
-export function useNowPlaying(): NowPlayingState | null {
+export const useNowPlaying = (): NowPlayingState | null => {
   const [state, setState] = useState<NowPlayingState | null>(null)
 
   useEffect(() => {

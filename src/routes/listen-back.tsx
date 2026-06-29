@@ -1,11 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export const Route = createFileRoute('/listen-back')({
-  component: ListenBackPage,
-})
-
-function ListenBackPage() {
+const ListenBackPage = () => {
   return (
     <div className="space-y-6">
       <div>
@@ -40,3 +36,7 @@ function ListenBackPage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/listen-back')({
+  component: ListenBackPage,
+})

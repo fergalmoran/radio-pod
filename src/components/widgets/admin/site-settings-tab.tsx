@@ -25,7 +25,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function SiteSettingsTab() {
+export const SiteSettingsTab = () => {
   const { data: settings } = useSuspenseQuery(siteSettingsQueryOptions)
   const queryClient = useQueryClient()
 

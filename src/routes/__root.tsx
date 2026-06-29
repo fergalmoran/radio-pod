@@ -23,28 +23,9 @@ interface RouterContext {
   session: Session | null
 }
 
-export const Route = createRootRouteWithContext<RouterContext>()({
-  beforeLoad: async () => {
-    const session = await getSession()
-    return { session }
-  },
-  loader: ({ context }) =>
-    context.queryClient.ensureQueryData(publicSiteSettingsQueryOptions),
-  head: ({ loaderData }) => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: loaderData?.name ??  'Surge FM' },
-    ],
-    links: [{ rel: 'stylesheet', href: appCss }],
-  }),
-  shellComponent: RootDocument,
-  component: RootLayout,
-  notFoundComponent: NotFound,
-})
-const queryClient = new QueryClient();
+const queryClient = new QueryClient()
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+const RootDocument = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -66,7 +47,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   )
 }
 
-function RootLayout() {
+const RootLayout = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Navbar />
@@ -81,7 +62,7 @@ function RootLayout() {
   )
 }
 
-function NotFound() {
+const NotFound = () => {
   return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
       <h1 className="text-4xl font-bold">404</h1>
@@ -89,3 +70,23 @@ function NotFound() {
     </div>
   )
 }
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: async () => {
+    const session = await getSession()
+    return { session }
+  },
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(publicSiteSettingsQueryOptions),
+  head: ({ loaderData }) => ({
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: loaderData?.name ??  'Surge FM' },
+    ],
+    links: [{ rel: 'stylesheet', href: appCss }],
+  }),
+  shellComponent: RootDocument,
+  component: RootLayout,
+  notFoundComponent: NotFound,
+})

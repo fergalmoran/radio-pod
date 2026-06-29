@@ -19,7 +19,7 @@ type EpisodeJob = {
 const jobs = new Map<number, ReturnType<typeof setTimeout>>()
 let initialized = false
 
-export function ensureRunning(): void {
+export const ensureRunning = (): void => {
   if (initialized) return
   initialized = true
   void loadAndScheduleEpisodes()
@@ -32,7 +32,7 @@ export function ensureRunning(): void {
   })
 }
 
-async function resumeCurrentEpisode(): Promise<void> {
+const resumeCurrentEpisode = async (): Promise<void> => {
   try {
     const now = new Date()
     const rows = await db
@@ -71,7 +71,7 @@ async function resumeCurrentEpisode(): Promise<void> {
   }
 }
 
-async function loadAndScheduleEpisodes(): Promise<void> {
+const loadAndScheduleEpisodes = async (): Promise<void> => {
   try {
     const now = new Date()
     const rows = await db
@@ -96,7 +96,7 @@ async function loadAndScheduleEpisodes(): Promise<void> {
   }
 }
 
-export function scheduleEpisode(episode: EpisodeJob): void {
+export const scheduleEpisode = (episode: EpisodeJob): void => {
   const existing = jobs.get(episode.id)
   if (existing !== undefined) clearTimeout(existing)
 
@@ -111,7 +111,7 @@ export function scheduleEpisode(episode: EpisodeJob): void {
   jobs.set(episode.id, timer)
 }
 
-export function cancelEpisode(id: number): void {
+export const cancelEpisode = (id: number): void => {
   const timer = jobs.get(id)
   if (timer !== undefined) {
     clearTimeout(timer)
@@ -119,7 +119,7 @@ export function cancelEpisode(id: number): void {
   }
 }
 
-async function onEpisodeStart(episode: EpisodeJob): Promise<void> {
+const onEpisodeStart = async (episode: EpisodeJob): Promise<void> => {
   jobs.delete(episode.id)
 
   const duration = episode.durationSeconds ?? 3600
@@ -151,7 +151,7 @@ async function onEpisodeStart(episode: EpisodeJob): Promise<void> {
   }
 }
 
-async function pushToLiquidsoap(filePath: string): Promise<void> {
+const pushToLiquidsoap = (filePath: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const host = process.env.LIQUIDSOAP_HOST ?? 'localhost'
     const port = parseInt(process.env.LIQUIDSOAP_PORT ?? '1234', 10)

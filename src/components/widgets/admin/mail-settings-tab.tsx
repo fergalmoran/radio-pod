@@ -31,7 +31,7 @@ type FormValues = z.infer<typeof schema>
 
 type AsyncStatus = 'idle' | 'pending' | 'ok' | 'error'
 
-export function MailSettingsTab() {
+export const MailSettingsTab = () => {
   const { data: settings } = useSuspenseQuery(mailSettingsQueryOptions)
   const queryClient = useQueryClient()
 
@@ -61,7 +61,7 @@ export function MailSettingsTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'mail-settings'] }),
   })
 
-  async function handleVerify() {
+  const handleVerify = async () => {
     setVerifyStatus('pending')
     setVerifyError('')
     try {
@@ -73,7 +73,7 @@ export function MailSettingsTab() {
     }
   }
 
-  async function handleTest() {
+  const handleTest = async () => {
     setTestStatus('pending')
     setTestError('')
     try {

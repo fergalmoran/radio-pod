@@ -5,7 +5,7 @@ import { Icons } from '../icons'
 import { useNowPlaying } from '@/lib/use-now-playing'
 import { useSiteSettings } from '@/lib/use-site-settings'
 
-export function PlayerBar() {
+export const PlayerBar = () => {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [volume, setVolume] = useState(() => parseFloat((typeof localStorage !== 'undefined' ? localStorage.getItem('player-volume') : null) ?? '1'))

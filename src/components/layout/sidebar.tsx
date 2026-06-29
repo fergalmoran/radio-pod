@@ -5,7 +5,7 @@ import { OnAirNow } from '../widgets/on-air-now'
 import { UpNext } from '../widgets/up-next'
 import { Chat } from '../widgets/chat/chat'
 
-export function Sidebar() {
+export const Sidebar = () => {
   return (
     <aside className="w-56 shrink-0 hidden lg:flex flex-col gap-6 py-6 px-3 border-r overflow-y-auto bg-sidebar">
       <section>

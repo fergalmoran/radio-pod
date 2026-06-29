@@ -41,14 +41,14 @@ type Props = {
   episode?: Episode | null
 }
 
-function toDatetimeLocal(date: Date | string | null) {
+const toDatetimeLocal = (date: Date | string | null) => {
   if (!date) return ''
   const d = new Date(date)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: Props) {
+export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: Props) => {
   const queryClient = useQueryClient()
   const { data: shows = [] } = useQuery(showsForUserQueryOptions)
   const isEditing = !!episode
@@ -87,11 +87,11 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: P
     setImageUploading(false)
   }, [episode, defaultDate, open])
 
-  function uploadFileWithProgress(
+  const uploadFileWithProgress = (
     file: File,
     type: 'audio' | 'image',
     onProgress?: (pct: number) => void,
-  ): Promise<string> {
+  ): Promise<string> => {
     return new Promise((resolve, reject) => {
       const formData = new FormData()
       formData.append('file', file)
@@ -114,7 +114,7 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: P
     })
   }
 
-  async function handleAudioChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleAudioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setAudioUploading(true)
@@ -127,7 +127,7 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: P
     }
   }
 
-  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setImageUploading(true)
@@ -160,12 +160,12 @@ export function ScheduleEpisodeDialog({ open, onClose, defaultDate, episode }: P
 
   const mutation = isEditing ? updateMutation : createMutation
 
-  function handleClose() {
+  const handleClose = () => {
     mutation.reset()
     onClose()
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!broadcastAt) return
     mutation.mutate()

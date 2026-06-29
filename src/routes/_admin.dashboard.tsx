@@ -7,18 +7,7 @@ import { UsersTab } from '@/components/widgets/admin/users-tab'
 import { MailSettingsTab } from '@/components/widgets/admin/mail-settings-tab'
 import { SiteSettingsTab } from '@/components/widgets/admin/site-settings-tab'
 
-export const Route = createFileRoute('/_admin/dashboard')({
-  loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(adminUsersQueryOptions),
-      context.queryClient.ensureQueryData(mailSettingsQueryOptions),
-      context.queryClient.ensureQueryData(siteSettingsQueryOptions),
-    ])
-  },
-  component: AdminDashboardPage,
-})
-
-function AdminDashboardPage() {
+const AdminDashboardPage = () => {
   return (
     <div className="space-y-6">
       <div>
@@ -70,3 +59,14 @@ function AdminDashboardPage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/_admin/dashboard')({
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(adminUsersQueryOptions),
+      context.queryClient.ensureQueryData(mailSettingsQueryOptions),
+      context.queryClient.ensureQueryData(siteSettingsQueryOptions),
+    ])
+  },
+  component: AdminDashboardPage,
+})

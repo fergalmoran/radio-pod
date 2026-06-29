@@ -17,14 +17,14 @@ export type ChatMessageData = {
   replyToUserName: string | null
 }
 
-export function isMentionedInMessage(message: ChatMessageData, userName: string): boolean {
+export const isMentionedInMessage = (message: ChatMessageData, userName: string): boolean => {
   const mentionPattern = new RegExp(`@${userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
   if (message.content && mentionPattern.test(message.content)) return true
   if (message.replyToUserName?.toLowerCase() === userName.toLowerCase()) return true
   return false
 }
 
-function parseContent(content: string) {
+const parseContent = (content: string) => {
   const parts = content.split(/(@\w[\w.]*)/g)
   return parts.map((part, i) =>
     part.startsWith('@') ? (
@@ -37,7 +37,7 @@ function parseContent(content: string) {
   )
 }
 
-function timeLabel(date: Date | string) {
+const timeLabel = (date: Date | string) => {
   const d = new Date(date)
   const diff = Date.now() - d.getTime()
   if (diff < 60_000) return 'just now'
@@ -52,7 +52,7 @@ type Props = {
   onScrollToMessage?: (id: number) => void
 }
 
-export function ChatMessageItem({ message, currentUserName, onReply, onScrollToMessage }: Props) {
+export const ChatMessageItem = ({ message, currentUserName, onReply, onScrollToMessage }: Props) => {
   const initials = message.userName
     .split(' ')
     .map((n) => n[0])

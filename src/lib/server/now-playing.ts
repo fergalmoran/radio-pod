@@ -14,11 +14,11 @@ let episodeEndsAt = 0 // epoch ms; 0 means no episode expected
 const clients = new Set<ReadableStreamDefaultController<Uint8Array>>()
 const encoder = new TextEncoder()
 
-export function getNowPlaying(): NowPlayingState | null {
+export const getNowPlaying = (): NowPlayingState | null => {
   return state
 }
 
-export function setNowPlaying(s: NowPlayingState): void {
+export const setNowPlaying = (s: NowPlayingState): void => {
   state = s
   const chunk = encoder.encode(`data: ${JSON.stringify(s)}\n\n`)
   for (const ctrl of clients) {
@@ -32,27 +32,27 @@ export function setNowPlaying(s: NowPlayingState): void {
 
 /** Called by the scheduler when an episode starts. Guards the window so stale
  *  on_track webhooks and Icecast polls don't overwrite the episode state. */
-export function markEpisodeStart(durationSeconds: number): void {
+export const markEpisodeStart = (durationSeconds: number): void => {
   episodeEndsAt = Date.now() + durationSeconds * 1000
 }
 
 /** True while an episode is expected to still be playing. */
-export function isEpisodeExpected(): boolean {
+export const isEpisodeExpected = (): boolean => {
   return Date.now() < episodeEndsAt
 }
 
-export function addClient(ctrl: ReadableStreamDefaultController<Uint8Array>): void {
+export const addClient = (ctrl: ReadableStreamDefaultController<Uint8Array>): void => {
   clients.add(ctrl)
 }
 
-export function removeClient(ctrl: ReadableStreamDefaultController<Uint8Array>): void {
+export const removeClient = (ctrl: ReadableStreamDefaultController<Uint8Array>): void => {
   clients.delete(ctrl)
 }
 
 type IcecastSource = { title?: string; artist?: string }
 type IcecastStatusJson = { icestats: { source?: IcecastSource | IcecastSource[] } }
 
-export async function pollIcecastNowPlaying(): Promise<void> {
+export const pollIcecastNowPlaying = async (): Promise<void> => {
   if (isEpisodeExpected()) return
 
   const host = process.env.ICECAST_HOST ?? 'localhost'

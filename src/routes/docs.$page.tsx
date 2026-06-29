@@ -3,18 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import { docQueryOptions } from '@/lib/queries/docs'
 
-export const Route = createFileRoute('/docs/$page')({
-  loader: async ({ params, context: { queryClient } }) => {
-    const data = await queryClient.ensureQueryData(docQueryOptions(params.page))
-    if (!data) throw notFound()
-  },
-  head: ({ loaderData }) => ({
-    meta: [{ title: (loaderData as { title?: string } | undefined)?.title }],
-  }),
-  component: DocsPage,
-})
-
-function DocsPage() {
+const DocsPage = () => {
   const { page } = Route.useParams()
   const { data } = useSuspenseQuery(docQueryOptions(page))
   if (!data) throw notFound()
@@ -55,3 +44,14 @@ function DocsPage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/docs/$page')({
+  loader: async ({ params, context: { queryClient } }) => {
+    const data = await queryClient.ensureQueryData(docQueryOptions(params.page))
+    if (!data) throw notFound()
+  },
+  head: ({ loaderData }) => ({
+    meta: [{ title: (loaderData as { title?: string } | undefined)?.title }],
+  }),
+  component: DocsPage,
+})

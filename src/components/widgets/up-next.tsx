@@ -3,7 +3,7 @@ import { upNextQueryOptions } from '@/lib/queries/episodes'
 import { Icons } from '@/components/icons'
 import { Image } from '../images/image'
 
-function formatRelative(date: Date): string {
+const formatRelative = (date: Date): string => {
   const diffMs = date.getTime() - Date.now()
   const diffMins = Math.round(diffMs / 60_000)
   if (diffMins < 60) return `in ${diffMins}m`
@@ -12,7 +12,7 @@ function formatRelative(date: Date): string {
   return m === 0 ? `in ${h}h` : `in ${h}h ${m}m`
 }
 
-export function UpNext() {
+export const UpNext = () => {
   const { data: episode } = useSuspenseQuery(upNextQueryOptions)
 
   if (!episode) {

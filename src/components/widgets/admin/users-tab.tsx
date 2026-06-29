@@ -15,7 +15,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 const ALL_ROLES: UserRole[] = ['user', 'editor', 'dj', 'admin']
 
-export function UsersTab() {
+export const UsersTab = () => {
   const { data: users } = useSuspenseQuery(adminUsersQueryOptions)
   const queryClient = useQueryClient()
 

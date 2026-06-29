@@ -11,7 +11,7 @@ type GiphyGif = {
 
 const GIPHY_KEY = import.meta.env.VITE_GIPHY_API_KEY as string | undefined
 
-async function fetchGifs(query: string): Promise<GiphyGif[]> {
+const fetchGifs = async (query: string): Promise<GiphyGif[]> => {
   const base = query
     ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(query)}&limit=24&rating=g`
     : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_KEY}&limit=24&rating=g`
@@ -31,7 +31,7 @@ type Props = {
   onClose: () => void
 }
 
-export function GiphyPicker({ onSelect, onClose }: Props) {
+export const GiphyPicker = ({ onSelect, onClose }: Props) => {
   const [query, setQuery] = useState('')
   const [gifs, setGifs] = useState<GiphyGif[]>([])
   const [loading, setLoading] = useState(false)

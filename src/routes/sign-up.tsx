@@ -15,14 +15,7 @@ import {
 import { SocialAuthButtons } from '@/components/auth/social-auth-buttons'
 import { useSiteSettings } from '@/lib/use-site-settings'
 
-export const Route = createFileRoute('/sign-up')({
-  beforeLoad: ({ context }) => {
-    if (context.session) throw redirect({ to: '/' })
-  },
-  component: SignUpPage,
-})
-
-function SignUpPage() {
+const SignUpPage = () => {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -32,7 +25,7 @@ function SignUpPage() {
 
   const settings = useSiteSettings();
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setPending(true)
@@ -111,3 +104,10 @@ function SignUpPage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/sign-up')({
+  beforeLoad: ({ context }) => {
+    if (context.session) throw redirect({ to: '/' })
+  },
+  component: SignUpPage,
+})

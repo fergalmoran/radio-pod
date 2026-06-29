@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Icons } from '@/components/icons'
 
-async function signInWithSocial(provider: 'google' | 'github' | 'discord') {
+const signInWithSocial = async (provider: 'google' | 'github' | 'discord') => {
   await authClient.signIn.social({ provider, callbackURL: '/' })
 }
 
@@ -11,7 +11,7 @@ interface SocialAuthButtonsProps {
   action?: 'Sign in' | 'Sign up'
 }
 
-export function SocialAuthButtons({ action = 'Sign in' }: SocialAuthButtonsProps) {
+export const SocialAuthButtons = ({ action = 'Sign in' }: SocialAuthButtonsProps) => {
   return (
     <>
       <div className="grid grid-cols-3 gap-2">

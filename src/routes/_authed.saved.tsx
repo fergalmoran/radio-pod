@@ -1,11 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export const Route = createFileRoute('/_authed/saved')({
-  component: SavedPage,
-})
-
-function SavedPage() {
+const SavedPage = () => {
   return (
     <div className="space-y-6">
       <div>
@@ -32,3 +28,7 @@ function SavedPage() {
     </div>
   )
 }
+
+export const Route = createFileRoute('/_authed/saved')({
+  component: SavedPage,
+})

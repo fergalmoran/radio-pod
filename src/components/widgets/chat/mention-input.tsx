@@ -13,10 +13,10 @@ type Props = {
   placeholder?: string
 }
 
-function detectMention(
+const detectMention = (
   value: string,
   cursorPos: number,
-): { search: string; start: number } | null {
+): { search: string; start: number } | null => {
   const before = value.slice(0, cursorPos)
   const match = before.match(/@(\w*)$/)
   if (!match) return null

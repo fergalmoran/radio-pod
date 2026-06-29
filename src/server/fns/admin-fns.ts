@@ -18,7 +18,7 @@ type UpdateRoleInput = {
   role: UserRole
 }
 
-async function requireAdmin() {
+const requireAdmin = async () => {
   const { auth } = await import('@/lib/auth')
   const session = await auth.api.getSession({ headers: await getRequestHeaders() })
   const role = (session?.user as { role?: string } | undefined)?.role
@@ -46,7 +46,7 @@ const MAIL_KEYS = [
   'mail.secure',
 ] as const
 
-async function fetchMailSettings() {
+const fetchMailSettings = async () => {
   const { db } = await import('@/db')
   const { siteSettings } = await import('@/db/schema')
   const rows = await db.select().from(siteSettings).where(inArray(siteSettings.key, [...MAIL_KEYS]))
@@ -63,7 +63,7 @@ async function fetchMailSettings() {
   }
 }
 
-async function fetchSiteSettings() {
+const fetchSiteSettings = async () => {
   const { db } = await import('@/db')
   const { siteSettings: settingsTable } = await import('@/db/schema')
   const rows = await db.select().from(settingsTable).where(inArray(settingsTable.key, [...SITE_KEYS]))
@@ -160,7 +160,7 @@ export const saveMailSettings = createServerFn({ method: 'POST' })
       })
   })
 
-function buildTransport(settings: { host: string; port: number; secure: boolean; username: string; password: string }) {
+const buildTransport = (settings: { host: string; port: number; secure: boolean; username: string; password: string }) => {
   return import('nodemailer').then(({ default: nodemailer }) =>
     nodemailer.createTransport({
       host: settings.host,

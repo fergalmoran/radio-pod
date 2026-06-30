@@ -3,6 +3,7 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import type { UserRole } from '@/db/schema'
 import { siteSettings as defaults } from '@/lib/site-settings'
+import { invalidateSiteSettingsCache } from '@/lib/server/site-settings'
 
 type MailSettingsInput = {
   host: string
@@ -119,6 +120,7 @@ export const saveSiteSettings = createServerFn({ method: 'POST' })
         target: settingsTable.key,
         set: { value: sql`excluded.value`, updatedAt: sql`excluded.updated_at` },
       })
+    invalidateSiteSettingsCache()
   })
 
 export const getAdminUsers = createServerFn({ method: 'GET' }).handler(async () => {

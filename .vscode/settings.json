@@ -1,6 +1,7 @@
 {
   "files.exclude": {
     "**/.git": true,
+    "**/.claude": true,
     "**/.tanstack": true,
     "**/.vscode": true,
     "**/node_modules": true,

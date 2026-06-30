@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { ImageUpload } from './image-upload'
 
 
 const schema = z.object({
@@ -46,7 +47,10 @@ export const SiteSettingsTab = () => {
   })
   const saveMutation = useMutation({
     mutationFn: (data: FormValues) => saveSiteSettings({ data }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'site-settings'] }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['admin', 'site-settings'] }),
+      queryClient.invalidateQueries({ queryKey: ['site-settings'] }),
+    ]),
   })
 
   return (
@@ -80,13 +84,25 @@ export const SiteSettingsTab = () => {
         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Assets</h3>
 
         <div className="space-y-1.5">
-          <Label htmlFor="logoUrl">Logo URL</Label>
-          <Input id="logoUrl" placeholder="https://…" {...form.register('logoUrl')} />
+          <Label>Logo</Label>
+          <Controller
+            control={form.control}
+            name="logoUrl"
+            render={({ field }) => (
+              <ImageUpload label="logo" value={field.value} onChange={field.onChange} />
+            )}
+          />
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="faviconUrl">Favicon URL</Label>
-          <Input id="faviconUrl" placeholder="https://…" {...form.register('faviconUrl')} />
+          <Label>Favicon</Label>
+          <Controller
+            control={form.control}
+            name="faviconUrl"
+            render={({ field }) => (
+              <ImageUpload label="favicon" value={field.value} onChange={field.onChange} />
+            )}
+          />
         </div>
       </div>
 

@@ -4,7 +4,8 @@ import {
   createRootRouteWithContext,
   Outlet,
 } from '@tanstack/react-router'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
+import { getContext } from '@/integrations/tanstack-query/root-provider'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { PlayerBar } from '@/components/layout/player-bar'
@@ -24,7 +25,7 @@ interface RouterContext {
   session: Session | null
 }
 
-const queryClient = new QueryClient()
+const { queryClient } = getContext()
 
 const RootDocument = ({ children }: { children: React.ReactNode }) => {
   return (

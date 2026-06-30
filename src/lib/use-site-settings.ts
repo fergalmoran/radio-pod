@@ -18,7 +18,7 @@ const defaultData = {
 export const useSiteSettings = () => {
   const { data } = useQuery({
     ...publicSiteSettingsQueryOptions,
-    initialData: defaultData,
+    placeholderData: defaultData,
   })
-  return data
+  return data ?? defaultData
 }

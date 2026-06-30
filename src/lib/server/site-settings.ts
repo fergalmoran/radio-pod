@@ -13,6 +13,10 @@ type ServerSiteSettings = {
 let cached: ServerSiteSettings | undefined
 let expiry = 0
 
+export const invalidateSiteSettingsCache = (): void => {
+  expiry = 0
+}
+
 export const getSiteSettings = async (): Promise<ServerSiteSettings> => {
   if (Date.now() < expiry && cached !== undefined) return cached
   try {

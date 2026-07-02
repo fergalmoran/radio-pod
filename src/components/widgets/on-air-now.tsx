@@ -1,7 +1,25 @@
+import { useState } from 'react'
+import { useRouteContext } from '@tanstack/react-router'
+import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { useNowPlaying } from '@/lib/use-now-playing'
 import { Icons } from '@/components/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
+import { getRole } from '@/lib/roles'
+import { stopShow } from '@/server/fns/schedule-fns'
 import { Image } from '../images/image'
 
 const fmtTime = (epochMs: number): string => {
@@ -10,6 +28,18 @@ const fmtTime = (epochMs: number): string => {
 
 export const OnAirNow = () => {
   const nowPlaying = useNowPlaying()
+  const { session } = useRouteContext({ from: '__root__' })
+  const isAdmin = getRole(session) === 'admin'
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const stopMutation = useMutation({
+    mutationFn: () => stopShow(),
+    onSuccess: () => {
+      toast.success('Show stopped')
+      setConfirmOpen(false)
+    },
+    onError: () => toast.error('Failed to stop show'),
+  })
 
   if (!nowPlaying) {
     return (
@@ -67,6 +97,37 @@ export const OnAirNow = () => {
           </Tooltip>
         </div>
       </div>
+
+      {isAdmin && isEpisode && (
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full">
+              <Icons.Square className="h-3.5 w-3.5" />
+              Stop Show
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Stop the current show?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will immediately cut "{nowPlaying.title}" and fall back to station rotation. This can't be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={stopMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={stopMutation.isPending}
+                onClick={(e) => {
+                  e.preventDefault()
+                  stopMutation.mutate()
+                }}
+              >
+                {stopMutation.isPending ? 'Stopping…' : 'Stop Show'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import '@tanstack/react-start/server-only'
 import { siteSettings as defaults } from '@/lib/site-settings'
 
-type ServerSiteSettings = {
+type SiteSettings = {
   name: string
   tagline: string
   description: string
@@ -10,14 +10,14 @@ type ServerSiteSettings = {
   social: { twitter: string; facebook: string; instagram: string }
 }
 
-let cached: ServerSiteSettings | undefined
+let cached: SiteSettings | undefined
 let expiry = 0
 
 export const invalidateSiteSettingsCache = (): void => {
   expiry = 0
 }
 
-export const getSiteSettings = async (): Promise<ServerSiteSettings> => {
+export const getSiteSettings = async (): Promise<SiteSettings> => {
   if (Date.now() < expiry && cached !== undefined) return cached
   try {
     const { db } = await import('@/db')

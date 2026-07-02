@@ -42,6 +42,11 @@ export const isEpisodeExpected = (): boolean => {
   return Date.now() < episodeEndsAt
 }
 
+/** Lifts the episode guard window, e.g. when an episode is stopped early. */
+export const clearEpisodeGuard = (): void => {
+  episodeEndsAt = 0
+}
+
 export const addClient = (ctrl: ReadableStreamDefaultController<Uint8Array>): void => {
   clients.add(ctrl)
 }

@@ -4,7 +4,7 @@ import net from 'node:net'
 import { gt, and, lte, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { episodes, shows } from '@/db/schema'
-import { setNowPlaying, markEpisodeStart, pollIcecastNowPlaying } from './now-playing'
+import { setNowPlaying, markEpisodeStart, clearEpisodeGuard, pollIcecastNowPlaying } from './now-playing'
 import { getSiteSettings } from './site-settings'
 
 type EpisodeJob = {
@@ -146,19 +146,26 @@ const onEpisodeStart = async (episode: EpisodeJob): Promise<void> => {
   const filePath = join(liquidsoap_dir, filename)
 
   try {
-    await pushToLiquidsoap(filePath)
+    await sendToLiquidsoap(`episodes.push ${filePath}`)
   } catch (err) {
     console.error('[scheduler] Failed to push episode to Liquidsoap:', err)
   }
 }
 
-const pushToLiquidsoap = (filePath: string): Promise<void> => {
+/** Skips the currently playing episode, falling back to dead air. */
+export const stopCurrentEpisode = async (): Promise<void> => {
+  clearEpisodeGuard()
+  await sendToLiquidsoap('episodes.skip')
+  await pollIcecastNowPlaying()
+}
+
+const sendToLiquidsoap = (command: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const host = process.env.LIQUIDSOAP_HOST ?? 'localhost'
     const port = parseInt(process.env.LIQUIDSOAP_PORT ?? '1234', 10)
     const client = net.createConnection({ host, port })
     client.once('connect', () => {
-      client.write(`episodes.push ${filePath}\n`)
+      client.write(`${command}\n`)
       client.end()
       resolve()
     })

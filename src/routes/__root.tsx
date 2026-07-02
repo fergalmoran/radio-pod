@@ -86,7 +86,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: loaderData?.name ?? defaults.name },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      ...(loaderData?.faviconUrl
+        ? [{ rel: 'icon', href: loaderData.faviconUrl }]
+        : []),
+    ],
   }),
   shellComponent: RootDocument,
   component: RootLayout,

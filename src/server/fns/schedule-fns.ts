@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { and, gte, gt, lt, asc, eq } from 'drizzle-orm'
-import { scheduleEpisode, cancelEpisode } from '@/lib/server/scheduler'
+import { scheduleEpisode, cancelEpisode, stopCurrentEpisode } from '@/lib/server/scheduler'
 
 type GetEpisodesInput = {
   month: string // "YYYY-MM"
@@ -180,3 +180,13 @@ export const deleteEpisode = createServerFn({ method: 'POST' })
     cancelEpisode(data.id)
     await db.delete(episodes).where(eq(episodes.id, data.id))
   })
+
+export const stopShow = createServerFn({ method: 'POST' }).handler(async () => {
+  const { auth } = await import('@/lib/auth')
+  const { getRole } = await import('@/lib/roles')
+
+  const session = await auth.api.getSession({ headers: await getRequestHeaders() })
+  if (!session || getRole(session) !== 'admin') throw new Error('Unauthorized')
+
+  await stopCurrentEpisode()
+})

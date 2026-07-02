@@ -19,7 +19,7 @@ export const UpNext = () => {
     return (
       <div className="px-2 py-3 rounded-lg bg-muted/40 flex items-center gap-2 text-xs text-muted-foreground">
         <Icons.Radio className="h-3.5 w-3.5 shrink-0" />
-        Dead air — station rotation
+        No shows currently scheduled
       </div>
     )
   }

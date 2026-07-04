@@ -1,0 +1,1 @@
+ALTER TABLE "mail_settings" DROP COLUMN "allow_insecure_tls";

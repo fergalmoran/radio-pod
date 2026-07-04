@@ -1,0 +1,27 @@
+logLevel: info
+
+rtmp: yes
+rtmpAddress: :1935
+
+hls: yes
+hlsAddress: :8888
+hlsAllowOrigins: ["*"]
+# Not "lowLatency": that variant pins sessions with a Secure/SameSite=None
+# cookie, which browsers refuse to persist over plain HTTP — breaks in dev
+# where the HLS port isn't behind a TLS-terminating proxy.
+hlsVariant: fmp4
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsAlwaysRemux: true
+
+pathDefaults:
+  runOnReady: >
+    wget -qO- --no-check-certificate --timeout=5
+    "$WEBHOOK_BASE_URL/api/live/webhook?event=ready&path=$MTX_PATH&secret=$MEDIAMTX_WEBHOOK_SECRET"
+  runOnReadyRestart: false
+  runOnNotReady: >
+    wget -qO- --no-check-certificate --timeout=5
+    "$WEBHOOK_BASE_URL/api/live/webhook?event=notready&path=$MTX_PATH&secret=$MEDIAMTX_WEBHOOK_SECRET"
+
+paths:
+  all_others: {}

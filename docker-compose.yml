@@ -8,6 +8,7 @@
 #   ICECAST_ADMIN_PASSWORD
 #   ICECAST_HOSTNAME          (e.g. stream.surge.fm)
 #   ICECAST_ADMIN_EMAIL
+#   MEDIAMTX_WEBHOOK_SECRET
 #
 # Media paths — set these to wherever your files live on the VPS, or leave
 # the defaults and create the directories under /opt/surge-fm/media/:
@@ -48,6 +49,7 @@ services:
       ICECAST_PORT: "8000"
       AUDIO_DIR: /mnt/shows
       IMAGE_DIR: /mnt/images
+      MEDIAMTX_WEBHOOK_SECRET: ${MEDIAMTX_WEBHOOK_SECRET:?MEDIAMTX_WEBHOOK_SECRET is required}
     volumes:
       - ${MEDIA_SHOWS:-/opt/surge-fm/media/shows}:/mnt/shows
       - ${MEDIA_IMAGES:-/opt/surge-fm/media/images}:/mnt/images
@@ -93,6 +95,19 @@ services:
       - ./icecast/entrypoint.sh:/tmp/icecast-entrypoint.sh:ro
     ports:
       - "127.0.0.1:8000:8000"
+
+  # ── MediaMTX (live video ingest) ─────────────────────────────────────────────
+  mediamtx:
+    image: bluenviron/mediamtx:latest-ffmpeg
+    restart: unless-stopped
+    environment:
+      MEDIAMTX_WEBHOOK_SECRET: ${MEDIAMTX_WEBHOOK_SECRET:?MEDIAMTX_WEBHOOK_SECRET is required}
+      WEBHOOK_BASE_URL: http://web:3000
+    volumes:
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      - "127.0.0.1:1935:1935"
+      - "127.0.0.1:8888:8888"
 
 volumes:
   postgres_data:

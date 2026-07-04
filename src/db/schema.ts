@@ -11,6 +11,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'dj', 'admin'])
+export const showLiveStatusEnum = pgEnum('show_live_status', ['offline', 'live'])
 
 // ─── better-auth tables ───────────────────────────────────────────────────────
 
@@ -77,6 +78,9 @@ export const shows = pgTable('shows', {
   hostUserId: text('host_user_id').references(() => users.id, { onDelete: 'set null' }),
   imageUrl: text('image_url'),
   schedule: jsonb('schedule'),
+  streamKey: text('stream_key').unique(),
+  liveStatus: showLiveStatusEnum('live_status').notNull().default('offline'),
+  liveStartedAt: timestamp('live_started_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
 
 export type NowPlayingState = {
-  type: 'episode' | 'dead-air'
+  type: 'episode' | 'dead-air' | 'live'
   title: string
   artist: string
   imageUrl?: string
   startsAt?: number // epoch ms
   endsAt?: number   // epoch ms
+  // live-only:
+  showId?: number
+  hostUserId?: string
+  hlsUrl?: string
+  startedAt?: number // epoch ms
 }
 
 export const useNowPlaying = (): NowPlayingState | null => {

@@ -9,6 +9,7 @@ import { getContext } from '@/integrations/tanstack-query/root-provider'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { PlayerBar } from '@/components/layout/player-bar'
+import { LiveHero } from '@/components/widgets/live-hero'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from 'next-themes'
 import appCss from '@/app.css?url'
@@ -55,7 +56,8 @@ const RootLayout = () => {
       <Navbar />
       <div className="flex flex-1 min-h-0">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto container mx-auto py-6 px-4 pb-24">
+        <main className="flex-1 overflow-y-auto container mx-auto py-6 px-4 pb-24 space-y-6">
+          <LiveHero />
           <Outlet />
         </main>
       </div>

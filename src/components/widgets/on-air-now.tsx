@@ -18,8 +18,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
-import { getRole } from '@/lib/roles'
+import { getRole, canEndLive } from '@/lib/roles'
 import { stopShow } from '@/server/fns/schedule-fns'
+import { endLive } from '@/server/fns/live-fns'
 import { Image } from '../images/image'
 
 const fmtTime = (epochMs: number): string => {
@@ -29,8 +30,10 @@ const fmtTime = (epochMs: number): string => {
 export const OnAirNow = () => {
   const nowPlaying = useNowPlaying()
   const { session } = useRouteContext({ from: '__root__' })
-  const isAdmin = getRole(session) === 'admin'
+  const role = getRole(session)
+  const isAdmin = role === 'admin'
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [endLiveConfirmOpen, setEndLiveConfirmOpen] = useState(false)
 
   const stopMutation = useMutation({
     mutationFn: () => stopShow(),
@@ -39,6 +42,16 @@ export const OnAirNow = () => {
       setConfirmOpen(false)
     },
     onError: () => toast.error('Failed to stop show'),
+  })
+
+  const isLive = nowPlaying?.type === 'live'
+  const endLiveMutation = useMutation({
+    mutationFn: () => endLive({ data: { showId: nowPlaying!.showId! } }),
+    onSuccess: () => {
+      toast.success('Live stream ended')
+      setEndLiveConfirmOpen(false)
+    },
+    onError: () => toast.error('Failed to end live stream'),
   })
 
   if (!nowPlaying) {
@@ -52,6 +65,7 @@ export const OnAirNow = () => {
 
   const isEpisode = nowPlaying.type === 'episode'
   const hasTiming = nowPlaying.startsAt !== undefined && nowPlaying.endsAt !== undefined
+  const isOwner = session?.user.id !== undefined && session.user.id === nowPlaying.hostUserId
 
   return (
     <div className="rounded-lg border bg-card px-3 py-2.5 flex flex-col gap-2">
@@ -59,7 +73,7 @@ export const OnAirNow = () => {
         <div className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {isEpisode ? 'On Air' : 'radio'}
+            {isLive ? 'Live' : isEpisode ? 'On Air' : 'radio'}
           </span>
         </div>
         {hasTiming && (
@@ -80,7 +94,7 @@ export const OnAirNow = () => {
         ) : (
           <div className={cn(
             'h-10 w-10 rounded-md flex items-center justify-center shrink-0',
-            isEpisode ? 'bg-primary/10' : 'bg-muted',
+            isEpisode || isLive ? 'bg-primary/10' : 'bg-muted',
           )}>
             <Icons.Radio className="h-5 w-5 text-muted-foreground/50" />
           </div>
@@ -123,6 +137,38 @@ export const OnAirNow = () => {
                 }}
               >
                 {stopMutation.isPending ? 'Stopping…' : 'Stop Show'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      {isLive && canEndLive(role, isOwner) && (
+        <AlertDialog open={endLiveConfirmOpen} onOpenChange={setEndLiveConfirmOpen}>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full">
+              <Icons.Square className="h-3.5 w-3.5" />
+              End Live
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>End the live stream?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will end "{nowPlaying.title}" and fall back to station rotation. The host will need to stop
+                streaming from OBS separately.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={endLiveMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={endLiveMutation.isPending}
+                onClick={(e) => {
+                  e.preventDefault()
+                  endLiveMutation.mutate()
+                }}
+              >
+                {endLiveMutation.isPending ? 'Ending…' : 'End Live'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

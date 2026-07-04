@@ -10,7 +10,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { getRole } from '@/lib/roles'
+import { GoLiveDialog } from '@/components/widgets/go-live-dialog'
+import { Icons } from '@/components/icons'
+import { getRole, canSchedule } from '@/lib/roles'
 import { useSiteSettings } from '@/lib/use-site-settings'
 
 export const Navbar = () => {
@@ -29,45 +31,61 @@ export const Navbar = () => {
         <nav className="flex items-center gap-1 ml-2">
           <Link
             to="/"
-            className="text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
-            activeProps={{ className: 'text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+            activeProps={{ className: 'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
             activeOptions={{ exact: true }}
           >
+            <Icons.Radio className="h-4 w-4" />
             Live
           </Link>
           <Link
             to="/shows"
-            className="text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
-            activeProps={{ className: 'text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+            activeProps={{ className: 'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
           >
+            <Icons.Mic className="h-4 w-4" />
             Shows
           </Link>
           <Link
             to="/listen-back"
-            className="text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
-            activeProps={{ className: 'text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+            activeProps={{ className: 'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
           >
+            <Icons.History className="h-4 w-4" />
             Listen Back
           </Link>
           <Link
-            to="/schedule"
-            className="text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
-            activeProps={{ className: 'text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
+            to="/djs"
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+            activeProps={{ className: 'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
           >
+            <Icons.Users className="h-4 w-4" />
+            DJs
+          </Link>
+          <Link
+            to="/schedule"
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+            activeProps={{ className: 'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
+          >
+            <Icons.Calendar className="h-4 w-4" />
             Schedule
           </Link>
           {session?.user && (
             <Link
               to="/saved"
-              className="text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
-              activeProps={{ className: 'text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+              activeProps={{ className: 'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-accent' }}
             >
+              <Icons.Bookmark className="h-4 w-4" />
               Saved
             </Link>
           )}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {session?.user && canSchedule(role) && (
+            <GoLiveDialog role={role} userId={session.user.id} />
+          )}
           <ThemeToggle />
           {session?.user ? (
             <DropdownMenu>

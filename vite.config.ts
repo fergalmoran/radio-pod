@@ -16,7 +16,7 @@ export default defineConfig({
         key: readFileSync(`${CERT_DIR}/privkey.pem`),
         cert: readFileSync(`${CERT_DIR}/fullchain.pem`),
       },
-      allowedHosts: ['radio-pod.dev.fergl.ie'],
+      allowedHosts: ['radio-pod.dev.fergl.ie', 'host.docker.internal'],
     }),
   },
   resolve: {

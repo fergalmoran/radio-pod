@@ -2,16 +2,22 @@ import '@tanstack/react-start/server-only'
 import { getSiteSettings } from './site-settings'
 
 export type NowPlayingState = {
-  type: 'episode' | 'dead-air'
+  type: 'episode' | 'dead-air' | 'live'
   title: string
   artist: string
   imageUrl?: string
   startsAt?: number // epoch ms
   endsAt?: number   // epoch ms
+  // live-only:
+  showId?: number
+  hostUserId?: string
+  hlsUrl?: string
+  startedAt?: number // epoch ms
 }
 
 let state: NowPlayingState | null = null
 let episodeEndsAt = 0 // epoch ms; 0 means no episode expected
+let liveActive = false
 const clients = new Set<ReadableStreamDefaultController<Uint8Array>>()
 const encoder = new TextEncoder()
 
@@ -47,6 +53,22 @@ export const clearEpisodeGuard = (): void => {
   episodeEndsAt = 0
 }
 
+/** Called by the live webhook when OBS starts publishing. Guards the state so
+ *  Icecast polls don't overwrite the live badge while a stream is active. */
+export const markLiveStart = (): void => {
+  liveActive = true
+}
+
+/** True while a live stream is expected to still be publishing. */
+export const isLiveActive = (): boolean => {
+  return liveActive
+}
+
+/** Lifts the live guard, e.g. when the stream ends or is force-stopped. */
+export const clearLiveGuard = (): void => {
+  liveActive = false
+}
+
 export const addClient = (ctrl: ReadableStreamDefaultController<Uint8Array>): void => {
   clients.add(ctrl)
 }
@@ -59,7 +81,7 @@ type IcecastSource = { title?: string; artist?: string }
 type IcecastStatusJson = { icestats: { source?: IcecastSource | IcecastSource[] } }
 
 export const pollIcecastNowPlaying = async (): Promise<void> => {
-  if (isEpisodeExpected()) return
+  if (isEpisodeExpected() || isLiveActive()) return
 
   const host = process.env.ICECAST_HOST ?? 'localhost'
   const port = process.env.ICECAST_PORT ?? '8000'

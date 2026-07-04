@@ -6,7 +6,23 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$ROOT_DIR"
 
-exec docker --context default compose \
+if [[ "${1:-}" == "--stop" ]]; then
+  exec docker --context default compose \
+    -f docker-compose.yml \
+    -f docker-compose.dev.yml \
+    stop icecast liquidsoap mediamtx
+fi
+
+if [[ "${1:-}" == "--log" ]]; then
+  exec docker --context default compose \
+    -f docker-compose.yml \
+    -f docker-compose.dev.yml \
+    logs -f icecast liquidsoap mediamtx
+fi
+
+docker --context default compose \
   -f docker-compose.yml \
   -f docker-compose.dev.yml \
-  up icecast liquidsoap
+  up -d icecast liquidsoap mediamtx
+
+exec docker --context default compose logs -f icecast liquidsoap mediamtx

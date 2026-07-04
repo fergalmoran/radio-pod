@@ -1,15 +1,19 @@
-import { useRef } from 'react'
-import { useNowPlaying } from '@/lib/use-now-playing'
-import { useHlsVideo } from '@/lib/use-hls-video'
+import { useRef, type RefObject } from 'react'
+import type { NowPlayingState } from '@/lib/use-now-playing'
+import type { QualityLevel } from '@/lib/use-hls-video'
 import { VideoControls } from '@/components/widgets/video-controls'
 
-export const LiveHero = () => {
-  const nowPlaying = useNowPlaying()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const isLive = nowPlaying?.type === 'live'
+type LiveHeroProps = {
+  nowPlaying: NowPlayingState | null
+  videoRef: RefObject<HTMLVideoElement | null>
+  levels: QualityLevel[]
+  currentLevel: number
+  setLevel: (index: number) => void
+}
 
-  const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
+export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel }: LiveHeroProps) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const isLive = nowPlaying?.type === 'live'
 
   if (!isLive) return null
 

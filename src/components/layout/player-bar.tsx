@@ -1,46 +1,97 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Icons } from '../icons'
-import { useNowPlaying } from '@/lib/use-now-playing'
+import type { NowPlayingState } from '@/lib/use-now-playing'
 import { useSiteSettings } from '@/lib/use-site-settings'
 
-export const PlayerBar = () => {
+type PlayerBarProps = {
+  nowPlaying: NowPlayingState | null
+  videoRef: RefObject<HTMLVideoElement | null>
+}
+
+export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [volume, setVolume] = useState(() => parseFloat((typeof localStorage !== 'undefined' ? localStorage.getItem('player-volume') : null) ?? '1'))
   const [isMuted, setIsMuted] = useState(false)
-  const nowPlaying = useNowPlaying()
+  const isLive = nowPlaying?.type === 'live'
 
   // Attempt autoplay on mount; if blocked, the play button handles it
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume
     audioRef.current?.play().catch(() => { })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const togglePlay = () => {
+  // Hand off between the Icecast <audio> and the live video's own audio track
+  // (shared with LiveHero) so exactly one of them is ever playing — Liquidsoap
+  // only ever carries scheduled shows/dead-air, MediaMTX carries live shows.
+  useEffect(() => {
     const audio = audioRef.current
-    if (!audio) return
-    if (isPlaying) {
-      audio.pause()
+    const video = videoRef.current
+    if (isLive) {
+      audio?.pause()
+      if (video) {
+        video.volume = volume
+        video.muted = isMuted
+        video.play().catch(() => { })
+      }
     } else {
-      audio.play().catch(() => { })
+      video?.pause()
+      if (audio) {
+        audio.volume = volume
+        audio.muted = isMuted
+        audio.play().catch(() => { })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLive])
+
+  // Reflect the shared video element's play/pause state while it's the active
+  // source (mirrors VideoControls' own listener on the same element).
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !isLive) return
+    setIsPlaying(!video.paused)
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    video.addEventListener('play', onPlay)
+    video.addEventListener('pause', onPause)
+    return () => {
+      video.removeEventListener('play', onPlay)
+      video.removeEventListener('pause', onPause)
+    }
+  }, [videoRef, isLive])
+
+  const activeMedia = () => (isLive ? videoRef.current : audioRef.current)
+
+  const togglePlay = () => {
+    const media = activeMedia()
+    if (!media) return
+    if (media.paused) {
+      media.play().catch(() => { })
+    } else {
+      media.pause()
     }
   }
 
   const toggleMute = () => {
-    const audio = audioRef.current
-    if (!audio) return
     const next = !isMuted
     setIsMuted(next)
-    audio.muted = next
+    const media = activeMedia()
+    if (media) media.muted = next
   }
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseFloat(e.target.value)
     setVolume(v)
     setIsMuted(v === 0)
-    if (audioRef.current) audioRef.current.volume = v
+    const media = activeMedia()
+    if (media) {
+      media.volume = v
+      media.muted = v === 0
+    }
     localStorage.setItem('player-volume', String(v))
   }
 

@@ -25,14 +25,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute image tags
+      - name: Compute image tags and version
         id: tags
         run: |
           TAGS="ghcr.io/fergalmoran/radio-pod:latest,ghcr.io/fergalmoran/radio-pod:${{ github.sha }}"
+          VERSION="${{ github.sha }}"
           if [ "${{ github.event_name }}" = "release" ]; then
             TAGS="$TAGS,ghcr.io/fergalmoran/radio-pod:${{ github.event.release.tag_name }}"
+            VERSION="${{ github.event.release.tag_name }}"
           fi
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -41,5 +44,7 @@ jobs:
           target: runtime
           push: true
           tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            RELEASE_VERSION=${{ steps.tags.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

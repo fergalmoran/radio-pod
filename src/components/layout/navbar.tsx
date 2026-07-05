@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useRouteContext, useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import { authClient } from '@/lib/auth-client'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -16,6 +17,7 @@ import { GoLiveDialog } from '@/components/widgets/go-live-dialog'
 import { Icons } from '@/components/icons'
 import { getRole, canSchedule } from '@/lib/roles'
 import { useSiteSettings } from '@/lib/use-site-settings'
+import { versionCheckQueryOptions } from '@/lib/queries'
 
 const NAV_LINK_CLASS =
   'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors'
@@ -70,6 +72,8 @@ export const Navbar = () => {
   const navigate = useNavigate()
   const settings = useSiteSettings();
   const [menuOpen, setMenuOpen] = useState(false)
+  const { data: versionCheck } = useQuery({ ...versionCheckQueryOptions, enabled: role === 'admin' })
+  const updateAvailable = versionCheck?.updateAvailable ?? false
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-14 items-center gap-2 sm:gap-4 px-3 sm:px-4">
@@ -104,13 +108,16 @@ export const Navbar = () => {
           {session?.user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 p-0 rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={session.user.image ?? undefined} />
                     <AvatarFallback>
                       {session.user.name?.charAt(0).toUpperCase() ?? 'U'}
                     </AvatarFallback>
                   </Avatar>
+                  {updateAvailable && (
+                    <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -133,6 +140,18 @@ export const Navbar = () => {
                         Debug: Now Playing
                       </Link>
                     </DropdownMenuItem>
+                    {updateAvailable && (
+                      <DropdownMenuItem asChild>
+                        <a
+                          href={versionCheck?.releaseUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="cursor-pointer w-full text-primary"
+                        >
+                          Update available: {versionCheck?.latest}
+                        </a>
+                      </DropdownMenuItem>
+                    )}
                   </>
                 )}
                 <DropdownMenuSeparator />

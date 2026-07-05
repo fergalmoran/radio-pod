@@ -54,10 +54,10 @@ export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel 
           onSelectLevel={setLevel}
         />
       </div>
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-center gap-2 px-4 py-3 min-w-0">
         <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live</span>
-        <p className="text-sm font-medium">{nowPlaying.title}</p>
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Live</span>
+        <p className="text-sm font-medium truncate min-w-0">{nowPlaying.title}</p>
       </div>
     </div>
   )

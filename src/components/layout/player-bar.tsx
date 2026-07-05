@@ -108,9 +108,9 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
         onPause={() => setIsPlaying(false)}
       />
 
-      <div className="container mx-auto flex h-16 items-center gap-4 px-4">
+      <div className="container mx-auto flex h-16 items-center gap-2 sm:gap-4 px-3 sm:px-4">
         {/* Now playing info */}
-        <div className="flex items-center gap-3 w-56 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-none sm:w-56">
           {nowPlaying?.imageUrl ? (
             <img
               src={nowPlaying.imageUrl}
@@ -130,16 +130,16 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
               {nowPlaying?.artist ?? 'Robot Powered Radio'}
             </p>
           </div>
-          <Button variant="ghost" size="icon" className="shrink-0" aria-label="Favorite">
+          <Button variant="ghost" size="icon" className="shrink-0 hidden sm:inline-flex" aria-label="Favorite">
             <Icons.Heart className="h-4 w-4" />
           </Button>
         </div>
 
-        <Separator orientation="vertical" className="h-8" />
+        <Separator orientation="vertical" className="h-8 hidden sm:block" />
 
         {/* Playback controls */}
-        <div className="flex items-center gap-1 mx-auto">
-          <Button variant="ghost" size="icon" aria-label="Previous" disabled>
+        <div className="flex items-center gap-1 shrink-0 sm:mx-auto">
+          <Button variant="ghost" size="icon" aria-label="Previous" disabled className="hidden sm:inline-flex">
             <Icons.SkipBack className="h-4 w-4" />
           </Button>
           <Button size="icon" aria-label="Play / Pause" onClick={togglePlay}>
@@ -149,15 +149,15 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
               <Icons.Play className="h-4 w-4" />
             )}
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Next" disabled>
+          <Button variant="ghost" size="icon" aria-label="Next" disabled className="hidden sm:inline-flex">
             <Icons.SkipForward className="h-4 w-4" />
           </Button>
         </div>
 
-        <Separator orientation="vertical" className="h-8" />
+        <Separator orientation="vertical" className="h-8 hidden sm:block" />
 
         {/* Volume */}
-        <div className="flex items-center gap-2 w-36 shrink-0 ml-auto">
+        <div className="hidden sm:flex items-center gap-2 w-36 shrink-0 sm:ml-auto">
           <button
             type="button"
             onClick={toggleMute}
@@ -181,6 +181,20 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
             aria-label="Volume"
           />
         </div>
+
+        {/* Mute toggle only, for narrow screens where the slider is hidden */}
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="sm:hidden text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+        >
+          {isMuted ? (
+            <Icons.VolumeX className="h-4 w-4" />
+          ) : (
+            <Icons.Volume2 className="h-4 w-4" />
+          )}
+        </button>
       </div>
     </footer>
   )

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import {
   HeadContent,
   Scripts,
@@ -11,6 +11,9 @@ import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { PlayerBar } from '@/components/layout/player-bar'
 import { LiveHero } from '@/components/widgets/live-hero'
+import { OnAirNow } from '@/components/widgets/on-air-now'
+import { UpNext } from '@/components/widgets/up-next'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from 'next-themes'
 import appCss from '@/app.css?url'
@@ -38,7 +41,7 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
+      <body className="min-h-dvh bg-background font-sans antialiased" suppressHydrationWarning>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <TooltipProvider>
@@ -63,11 +66,17 @@ const RootLayout = () => {
   const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-dvh overflow-hidden">
       <Navbar />
       <div className="flex flex-1 min-h-0">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto container mx-auto py-6 px-4 pb-24 space-y-6">
+        <main className="flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 pb-24 space-y-4 sm:space-y-6">
+          <div className="lg:hidden space-y-3">
+            <OnAirNow />
+            <Suspense fallback={<Skeleton className="h-16 w-full rounded-lg" />}>
+              <UpNext />
+            </Suspense>
+          </div>
           <LiveHero
             nowPlaying={nowPlaying}
             videoRef={videoRef}

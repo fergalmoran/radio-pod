@@ -113,6 +113,7 @@ export const VideoControls = ({ videoRef, containerRef, levels, currentLevel, on
       onMouseLeave={() => {
         if (isPlaying && !menuOpen) setVisible(false)
       }}
+      onTouchStart={showControls}
     >
       <div
         className={cn(

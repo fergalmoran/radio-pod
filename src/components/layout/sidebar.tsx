@@ -5,14 +5,19 @@ import { OnAirNow } from '../widgets/on-air-now'
 import { UpNext } from '../widgets/up-next'
 
 
-export const Sidebar = () => {
+type SidebarProps = {
+  isMuted?: boolean
+  onToggleMute?: () => void
+}
+
+export const Sidebar = ({ isMuted, onToggleMute }: SidebarProps) => {
   return (
     <aside className="w-56 shrink-0 hidden lg:flex flex-col gap-6 py-6 px-3 border-r overflow-y-auto bg-sidebar">
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-2">
           On Air Now
         </h3>
-        <OnAirNow />
+        <OnAirNow isMuted={isMuted} onToggleMute={onToggleMute} />
       </section>
 
       <Separator />

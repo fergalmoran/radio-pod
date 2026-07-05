@@ -3,6 +3,8 @@ name: Build and push image
 on:
   push:
     branches: [trunk]
+  release:
+    types: [published]
   workflow_dispatch: {}
 
 jobs:
@@ -25,14 +27,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute image tags
+        id: tags
+        run: |
+          TAGS="ghcr.io/fergalmoran/radio-pod:latest,ghcr.io/fergalmoran/radio-pod:${{ github.sha }}"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAGS="$TAGS,ghcr.io/fergalmoran/radio-pod:${{ github.event.release.tag_name }}"
+          fi
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           target: runtime
           push: true
-          tags: |
-            ghcr.io/fergalmoran/radio-pod:latest
-            ghcr.io/fergalmoran/radio-pod:${{ github.sha }}
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

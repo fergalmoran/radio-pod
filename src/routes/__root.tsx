@@ -10,7 +10,6 @@ import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { getContext } from '@/integrations/tanstack-query/root-provider'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
-import { PlayerBar } from '@/components/layout/player-bar'
 import { LiveHero } from '@/components/widgets/live-hero'
 import { OnAirNow } from '@/components/widgets/on-air-now'
 import { Toaster } from '@/components/ui/sonner'
@@ -23,6 +22,7 @@ import { publicSiteSettingsQueryOptions } from '@/lib/queries/site-settings'
 import { siteSettings as defaults } from '@/lib/site-settings'
 import { useNowPlaying } from '@/lib/use-now-playing'
 import { useHlsVideo } from '@/lib/use-hls-video'
+import { useRadioAudio } from '@/lib/use-radio-audio'
 import { cn } from '@/lib/utils'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
@@ -57,13 +57,14 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
 }
 
 const RootLayout = () => {
-  // Shared across LiveHero (picture) and PlayerBar (site-wide audio control) so
-  // there's exactly one HLS connection driving both — keeps them frame-accurate
-  // instead of two independent pulls of the same stream drifting apart.
+  // Shared across LiveHero (video) and useRadioAudio (background audio) so
+  // there's exactly one HLS connection and one audio element driving both —
+  // keeps them frame-accurate instead of independent pulls of the same stream.
   const nowPlaying = useNowPlaying()
   const videoRef = useRef<HTMLVideoElement>(null)
   const isLive = nowPlaying?.type === 'live'
   const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
+  const { audioRef, isMuted, toggleMute, streamUrl } = useRadioAudio(videoRef, isLive)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // On the home page while live, pair the video with chat side-by-side and fit
   // both to the viewport at lg+ instead of stacking them (which pushed chat
@@ -73,16 +74,17 @@ const RootLayout = () => {
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
       <Navbar />
+      <audio ref={audioRef} src={streamUrl} />
       <div className="flex flex-1 min-h-0">
-        <Sidebar />
+        <Sidebar isMuted={isMuted} onToggleMute={toggleMute} />
         <main
           className={cn(
-            'flex-1 overflow-y-auto container mx-auto pt-4 sm:pt-6 px-3 sm:px-4 pb-24 space-y-4 sm:space-y-6',
+            'flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 space-y-4 sm:space-y-6',
             isTheater && 'lg:overflow-hidden lg:flex lg:flex-col lg:min-h-0 lg:space-y-0'
           )}
         >
           <div className="lg:hidden">
-            <OnAirNow />
+            <OnAirNow isMuted={isMuted} onToggleMute={toggleMute} />
           </div>
           {isTheater ? (
             <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
@@ -114,7 +116,6 @@ const RootLayout = () => {
           )}
         </main>
       </div>
-      <PlayerBar nowPlaying={nowPlaying} videoRef={videoRef} />
     </div>
   )
 }

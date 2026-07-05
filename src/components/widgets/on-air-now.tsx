@@ -27,7 +27,12 @@ const fmtTime = (epochMs: number): string => {
   return new Date(epochMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-export const OnAirNow = () => {
+type OnAirNowProps = {
+  isMuted?: boolean
+  onToggleMute?: () => void
+}
+
+export const OnAirNow = ({ isMuted, onToggleMute }: OnAirNowProps) => {
   const nowPlaying = useNowPlaying()
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
@@ -110,6 +115,21 @@ export const OnAirNow = () => {
             <TooltipContent>{nowPlaying.title}</TooltipContent>
           </Tooltip>
         </div>
+
+        {!isLive && onToggleMute && (
+          <button
+            type="button"
+            onClick={onToggleMute}
+            className="ml-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? (
+              <Icons.VolumeX className="h-4 w-4" />
+            ) : (
+              <Icons.Volume2 className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {isAdmin && isEpisode && (

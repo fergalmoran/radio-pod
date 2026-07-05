@@ -22,6 +22,12 @@ services:
       # the vite dev server here has a real cert but only for radio-pod.dev.fergl.ie,
       # hence --no-check-certificate in mediamtx.yml's wget calls.
       WEBHOOK_BASE_URL: https://host.docker.internal:3000
+      # Publish auth (see mediamtx.yml). Unlike WEBHOOK_BASE_URL above, this
+      # uses the real radio-pod.dev.fergl.ie hostname rather than
+      # host.docker.internal — the dev cert only covers *.dev.fergl.ie, and
+      # that hostname resolves to the host from inside containers too, so no
+      # --no-check-certificate-style exception is needed here.
+      MTX_AUTHHTTPADDRESS: https://radio-pod.dev.fergl.ie:3000/api/live/auth?secret=${MEDIAMTX_WEBHOOK_SECRET}
       # MediaMTX's HLS server always sets a Secure/SameSite=None session cookie,
       # which browsers refuse to persist over plain HTTP. There's no reverse proxy
       # in front of mediamtx in dev (unlike prod), so mediamtx must terminate TLS

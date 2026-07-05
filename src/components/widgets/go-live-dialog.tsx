@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
@@ -13,10 +12,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Icons } from '@/components/icons'
 import { showsForUserQueryOptions, showLiveInfoQueryOptions } from '@/lib/queries'
 import { goLive, endLive } from '@/server/fns/live-fns'
+import { createShow } from '@/server/fns/schedule-fns'
 import { canEndLive } from '@/lib/roles'
 import { useNowPlaying } from '@/lib/use-now-playing'
 import type { UserRole } from '@/db/schema'
@@ -26,6 +27,8 @@ type GoLiveDialogProps = {
   userId: string
 }
 
+const NEW_SHOW_VALUE = '_new'
+
 const copyToClipboard = (value: string) => {
   navigator.clipboard.writeText(value)
   toast.success('Copied to clipboard')
@@ -33,22 +36,31 @@ const copyToClipboard = (value: string) => {
 
 export const GoLiveDialog = ({ role, userId }: GoLiveDialogProps) => {
   const [open, setOpen] = useState(false)
-  const [selectedShowId, setSelectedShowId] = useState<number | null>(null)
+  const [selection, setSelection] = useState('')
+  const [newTitle, setNewTitle] = useState('')
+  const [newDescription, setNewDescription] = useState('')
   const queryClient = useQueryClient()
   const nowPlaying = useNowPlaying()
 
   const showsQuery = useQuery({ ...showsForUserQueryOptions, enabled: open })
   const shows = showsQuery.data ?? []
+  const isCreatingNew = selection === NEW_SHOW_VALUE
+  const selectedShowId = selection && !isCreatingNew ? Number(selection) : null
 
   useEffect(() => {
     if (!open) {
-      setSelectedShowId(null)
+      setSelection('')
+      setNewTitle('')
+      setNewDescription('')
       return
     }
-    if (shows.length === 1 && selectedShowId == null) {
-      setSelectedShowId(shows[0].id)
+    if (selection) return
+    if (shows.length === 1) {
+      setSelection(String(shows[0].id))
+    } else if (shows.length === 0) {
+      setSelection(NEW_SHOW_VALUE)
     }
-  }, [open, shows, selectedShowId])
+  }, [open, shows, selection])
 
   const liveInfoQuery = useQuery({
     ...showLiveInfoQueryOptions(selectedShowId ?? -1),
@@ -72,6 +84,22 @@ export const GoLiveDialog = ({ role, userId }: GoLiveDialogProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShowId])
 
+  const createShowMutation = useMutation({
+    mutationFn: () =>
+      createShow({
+        data: {
+          title: newTitle,
+          description: newDescription || undefined,
+          broadcastAt: new Date().toISOString(),
+        },
+      }),
+    onSuccess: (show) => {
+      queryClient.invalidateQueries({ queryKey: ['shows'] })
+      setSelection(String(show.id))
+    },
+    onError: () => toast.error('Failed to create show'),
+  })
+
   const endLiveMutation = useMutation({
     mutationFn: (showId: number) => endLive({ data: { showId } }),
     onSuccess: (_data, showId) => {
@@ -87,7 +115,7 @@ export const GoLiveDialog = ({ role, userId }: GoLiveDialogProps) => {
   const isLive =
     (nowPlaying?.type === 'live' && nowPlaying.showId === selectedShowId) ||
     liveInfoQuery.data?.liveStatus === 'live'
-  const isOwner = selectedShow?.hostUserId === userId
+  const isOwner = selectedShow ? selectedShow.hostUserId === userId : true
 
   // Close the dialog as soon as the site picks up the OBS stream for this show.
   useEffect(() => {
@@ -115,24 +143,12 @@ export const GoLiveDialog = ({ role, userId }: GoLiveDialogProps) => {
 
         {showsQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading your shows...</p>
-        ) : shows.length === 0 ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              You don't have a show to go live with yet.
-            </p>
-            <Button asChild size="sm" onClick={() => setOpen(false)}>
-              <Link to="/shows/new">Create a show</Link>
-            </Button>
-          </div>
         ) : (
           <div className="space-y-5">
-            {shows.length > 1 && (
+            {shows.length > 0 && (
               <div className="space-y-2">
                 <Label>Show</Label>
-                <Select
-                  value={selectedShowId != null ? String(selectedShowId) : undefined}
-                  onValueChange={(value) => setSelectedShowId(Number(value))}
-                >
+                <Select value={selection} onValueChange={setSelection}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a show" />
                   </SelectTrigger>
@@ -142,12 +158,46 @@ export const GoLiveDialog = ({ role, userId }: GoLiveDialogProps) => {
                         {show.title}
                       </SelectItem>
                     ))}
+                    <SelectItem value={NEW_SHOW_VALUE}>+ Start a new show</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            {selectedShowId != null && (
+            {isCreatingNew ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-show-title">Show name</Label>
+                  <Input
+                    id="new-show-title"
+                    placeholder="e.g. Friday Night Live"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-show-description">Description</Label>
+                  <Textarea
+                    id="new-show-description"
+                    placeholder="What are you playing tonight?"
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                {createShowMutation.isError && (
+                  <p className="text-sm text-destructive">Failed to create show</p>
+                )}
+                <Button
+                  className="w-full"
+                  disabled={!newTitle.trim() || createShowMutation.isPending}
+                  onClick={() => createShowMutation.mutate()}
+                >
+                  {createShowMutation.isPending ? 'Starting...' : 'Start streaming'}
+                </Button>
+              </div>
+            ) : selectedShowId != null ? (
               streamKey && rtmpUrl ? (
                 <div className="space-y-5">
                   <div className="flex items-center gap-2 text-sm">
@@ -198,7 +248,7 @@ export const GoLiveDialog = ({ role, userId }: GoLiveDialogProps) => {
               ) : (
                 <p className="text-sm text-muted-foreground">Setting up...</p>
               )
-            )}
+            ) : null}
           </div>
         )}
       </DialogContent>

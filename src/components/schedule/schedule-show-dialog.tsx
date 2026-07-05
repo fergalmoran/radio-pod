@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -12,22 +12,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
-import { createEpisode, updateEpisode } from '@/server/fns/schedule-fns'
-import { showsForUserQueryOptions } from '@/lib/queries'
+import { createShow, updateShow } from '@/server/fns/schedule-fns'
 
-type Episode = {
+type ShowOccurrence = {
   id: number
   title: string
   description: string | null
-  showId: number | null
   broadcastAt: Date | string
   durationSeconds: number | null
   imageUrl: string | null
@@ -38,7 +29,7 @@ type Props = {
   open: boolean
   onClose: () => void
   defaultDate: Date | null
-  episode?: Episode | null
+  show?: ShowOccurrence | null
 }
 
 const toDatetimeLocal = (date: Date | string | null) => {
@@ -48,14 +39,12 @@ const toDatetimeLocal = (date: Date | string | null) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: Props) => {
+export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) => {
   const queryClient = useQueryClient()
-  const { data: shows = [] } = useQuery(showsForUserQueryOptions)
-  const isEditing = !!episode
+  const isEditing = !!show
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [showId, setShowId] = useState('')
   const [broadcastAt, setBroadcastAt] = useState('')
   const [duration, setDuration] = useState('')
   const [imageUrl, setImageUrl] = useState('')
@@ -65,18 +54,16 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
   const [imageUploading, setImageUploading] = useState(false)
 
   useEffect(() => {
-    if (episode) {
-      setTitle(episode.title)
-      setDescription(episode.description ?? '')
-      setShowId(episode.showId ? String(episode.showId) : '_none')
-      setBroadcastAt(toDatetimeLocal(episode.broadcastAt))
-      setDuration(episode.durationSeconds ? String(episode.durationSeconds / 60) : '')
-      setImageUrl(episode.imageUrl ?? '')
-      setAudioUrl(episode.audioUrl ?? '')
+    if (show) {
+      setTitle(show.title)
+      setDescription(show.description ?? '')
+      setBroadcastAt(toDatetimeLocal(show.broadcastAt))
+      setDuration(show.durationSeconds ? String(show.durationSeconds / 60) : '')
+      setImageUrl(show.imageUrl ?? '')
+      setAudioUrl(show.audioUrl ?? '')
     } else {
       setTitle('')
       setDescription('')
-      setShowId('')
       setBroadcastAt(toDatetimeLocal(defaultDate))
       setDuration('')
       setImageUrl('')
@@ -85,7 +72,7 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
     setAudioUploading(false)
     setAudioProgress(0)
     setImageUploading(false)
-  }, [episode, defaultDate, open])
+  }, [show, defaultDate, open])
 
   const uploadFileWithProgress = (
     file: File,
@@ -132,7 +119,7 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
     if (!file) return
     setImageUploading(true)
     try {
-      setImageUrl(await uploadFile(file, 'image'))
+      setImageUrl(await uploadFileWithProgress(file, 'image'))
     } finally {
       setImageUploading(false)
     }
@@ -141,7 +128,6 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
   const sharedData = () => ({
     title,
     description: description || undefined,
-    showId: showId && showId !== '_none' ? Number(showId) : null,
     broadcastAt: new Date(broadcastAt).toISOString(),
     durationMinutes: duration ? Number(duration) : undefined,
     imageUrl: imageUrl || undefined,
@@ -149,13 +135,13 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
   })
 
   const createMutation = useMutation({
-    mutationFn: () => createEpisode({ data: sharedData() }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['episodes'] }); handleClose() },
+    mutationFn: () => createShow({ data: sharedData() }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['shows'] }); handleClose() },
   })
 
   const updateMutation = useMutation({
-    mutationFn: () => updateEpisode({ data: { id: episode!.id, ...sharedData() } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['episodes'] }); handleClose() },
+    mutationFn: () => updateShow({ data: { id: show!.id, ...sharedData() } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['shows'] }); handleClose() },
   })
 
   const mutation = isEditing ? updateMutation : createMutation
@@ -175,18 +161,18 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit episode' : 'Schedule an episode'}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit show' : 'Schedule a show'}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update this episode.' : 'Add a new episode to the broadcast schedule.'}
+            {isEditing ? 'Update this show.' : 'Add a new show to the broadcast schedule.'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="ep-title">Title</Label>
+            <Label htmlFor="show-title">Title</Label>
             <Input
-              id="ep-title"
-              placeholder="Episode title"
+              id="show-title"
+              placeholder="Show title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -194,38 +180,21 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="ep-description">Description</Label>
+            <Label htmlFor="show-description">Description</Label>
             <Textarea
-              id="ep-description"
-              placeholder="What's this episode about?"
+              id="show-description"
+              placeholder="What's this show about?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="ep-show">Show</Label>
-            <Select value={showId} onValueChange={setShowId}>
-              <SelectTrigger id="ep-show">
-                <SelectValue placeholder="Standalone (no show)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_none">Standalone (no show)</SelectItem>
-                {shows.map((s) => (
-                  <SelectItem key={s.id} value={String(s.id)}>
-                    {s.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="ep-broadcast">Broadcast date & time</Label>
+              <Label htmlFor="show-broadcast">Broadcast date & time</Label>
               <Input
-                id="ep-broadcast"
+                id="show-broadcast"
                 type="datetime-local"
                 value={broadcastAt}
                 onChange={(e) => setBroadcastAt(e.target.value)}
@@ -233,9 +202,9 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ep-duration">Duration (minutes)</Label>
+              <Label htmlFor="show-duration">Duration (minutes)</Label>
               <Input
-                id="ep-duration"
+                id="show-duration"
                 type="number"
                 min="1"
                 placeholder="60"
@@ -246,9 +215,9 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="ep-audio">Audio file</Label>
+            <Label htmlFor="show-audio">Audio file</Label>
             <Input
-              id="ep-audio"
+              id="show-audio"
               type="file"
               accept="audio/*"
               onChange={handleAudioChange}
@@ -266,9 +235,9 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="ep-image">Episode image</Label>
+            <Label htmlFor="show-image">Show image</Label>
             <Input
-              id="ep-image"
+              id="show-image"
               type="file"
               accept="image/*"
               onChange={handleImageChange}
@@ -282,7 +251,7 @@ export const ScheduleEpisodeDialog = ({ open, onClose, defaultDate, episode }: P
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {mutation.error instanceof Error ? mutation.error.message : 'Failed to save episode'}
+              {mutation.error instanceof Error ? mutation.error.message : 'Failed to save show'}
             </p>
           )}
 

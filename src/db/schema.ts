@@ -6,7 +6,6 @@ import {
   boolean,
   integer,
   serial,
-  jsonb,
   primaryKey,
 } from 'drizzle-orm/pg-core'
 
@@ -69,15 +68,21 @@ export const verifications = pgTable('verifications', {
 
 // ─── radio app tables ─────────────────────────────────────────────────────────
 
+// A show is a single occurrence/broadcast — live or pre-recorded. Recurring
+// programmes are just multiple rows sharing the same title; there's no
+// separate "series" entity or recurrence rule, and no "episodes" table —
+// every airing (ad-hoc live or scheduled) is one row here.
 export const shows = pgTable('shows', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
-  slug: text('slug').notNull().unique(),
   description: text('description'),
   hostName: text('host_name'),
   hostUserId: text('host_user_id').references(() => users.id, { onDelete: 'set null' }),
   imageUrl: text('image_url'),
-  schedule: jsonb('schedule'),
+  broadcastAt: timestamp('broadcast_at').notNull(),
+  durationSeconds: integer('duration_seconds'),
+  // Set once the broadcast has aired and been archived for Listen Back.
+  audioUrl: text('audio_url'),
   streamKey: text('stream_key').unique(),
   liveStatus: showLiveStatusEnum('live_status').notNull().default('offline'),
   liveStartedAt: timestamp('live_started_at'),
@@ -87,31 +92,18 @@ export const shows = pgTable('shows', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
-export const episodes = pgTable('episodes', {
-  id: serial('id').primaryKey(),
-  showId: integer('show_id')
-    .references(() => shows.id, { onDelete: 'set null' }),
-  title: text('title').notNull(),
-  description: text('description'),
-  audioUrl: text('audio_url'),
-  imageUrl: text('image_url'),
-  durationSeconds: integer('duration_seconds'),
-  broadcastAt: timestamp('broadcast_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
-
-export const savedEpisodes = pgTable(
-  'saved_episodes',
+export const savedShows = pgTable(
+  'saved_shows',
   {
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    episodeId: integer('episode_id')
+    showId: integer('show_id')
       .notNull()
-      .references(() => episodes.id, { onDelete: 'cascade' }),
+      .references(() => shows.id, { onDelete: 'cascade' }),
     savedAt: timestamp('saved_at').defaultNow().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.episodeId] })],
+  (t) => [primaryKey({ columns: [t.userId, t.showId] })],
 )
 
 export const chatMessages = pgTable('chat_messages', {
@@ -136,8 +128,7 @@ export const siteSettings = pgTable('site_settings', {
 
 export type User = typeof users.$inferSelect
 export type Show = typeof shows.$inferSelect
-export type Episode = typeof episodes.$inferSelect
-export type SavedEpisode = typeof savedEpisodes.$inferSelect
+export type SavedShow = typeof savedShows.$inferSelect
 export type ChatMessage = typeof chatMessages.$inferSelect
 export type UserRole = typeof userRoleEnum.enumValues[number]
 export type SiteSetting = typeof siteSettings.$inferSelect

@@ -32,16 +32,19 @@ export const Route = createFileRoute('/api/live/webhook')({
             .where(eq(shows.id, show.id))
 
           markLiveStart()
-          setNowPlaying({
-            type: 'live',
-            title: show.title,
-            artist: show.hostName ?? 'Live',
-            imageUrl: show.imageUrl ?? undefined,
-            showId: show.id,
-            hostUserId: show.hostUserId ?? undefined,
-            hlsUrl: `${process.env.MEDIAMTX_HLS_PUBLIC_URL}/live/${streamKey}/index.m3u8`,
-            startedAt,
-          })
+          setNowPlaying(
+            {
+              type: 'live',
+              title: show.title,
+              artist: show.hostName ?? 'Live',
+              imageUrl: show.imageUrl ?? undefined,
+              showId: show.id,
+              hostUserId: show.hostUserId ?? undefined,
+              hlsUrl: `${process.env.MEDIAMTX_HLS_PUBLIC_URL}/live/${streamKey}/index.m3u8`,
+              startedAt,
+            },
+            `MediaMTX webhook: OBS started publishing for show "${show.title}" (id ${show.id}, streamKey ${streamKey})`,
+          )
         } else if (event === 'notready') {
           await db.update(shows).set({ liveStatus: 'offline', liveArmedAt: null }).where(eq(shows.id, show.id))
           clearLiveGuard()

@@ -1,184 +1,162 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { and, gte, gt, lt, asc, eq } from 'drizzle-orm'
-import { scheduleEpisode, cancelEpisode, stopCurrentEpisode } from '@/lib/server/scheduler'
+import { scheduleShow, cancelShow, stopCurrentShow } from '@/lib/server/scheduler'
 
-type GetEpisodesInput = {
+type GetShowsInput = {
   month: string // "YYYY-MM"
 }
 
-type CreateEpisodeInput = {
+type CreateShowInput = {
   title: string
   description?: string
-  showId?: number | null
   broadcastAt: string
   durationMinutes?: number
   imageUrl?: string
   audioUrl?: string
 }
 
-type UpdateEpisodeInput = CreateEpisodeInput & { id: number }
+type UpdateShowInput = CreateShowInput & { id: number }
 
-export const getEpisodesForMonth = createServerFn({ method: 'GET' })
-  .validator((data: unknown) => data as GetEpisodesInput)
+export const getShowsForMonth = createServerFn({ method: 'GET' })
+  .validator((data: unknown) => data as GetShowsInput)
   .handler(async ({ data }) => {
     const { db } = await import('@/db')
-    const { episodes, shows } = await import('@/db/schema')
+    const { shows } = await import('@/db/schema')
 
     const [year, month] = data.month.split('-').map(Number)
     const start = new Date(year, month - 1, 1)
     const end = new Date(year, month, 1)
 
-    const rows = await db
+    return db
       .select({
-        id: episodes.id,
-        title: episodes.title,
-        description: episodes.description,
-        audioUrl: episodes.audioUrl,
-        imageUrl: episodes.imageUrl,
-        broadcastAt: episodes.broadcastAt,
-        durationSeconds: episodes.durationSeconds,
-        showId: episodes.showId,
-        showTitle: shows.title,
+        id: shows.id,
+        title: shows.title,
+        description: shows.description,
+        audioUrl: shows.audioUrl,
+        imageUrl: shows.imageUrl,
+        broadcastAt: shows.broadcastAt,
+        durationSeconds: shows.durationSeconds,
+        hostName: shows.hostName,
+        hostUserId: shows.hostUserId,
       })
-      .from(episodes)
-      .leftJoin(shows, eq(shows.id, episodes.showId))
-      .where(and(gte(episodes.broadcastAt, start), lt(episodes.broadcastAt, end)))
-      .orderBy(asc(episodes.broadcastAt))
-
-    return rows
+      .from(shows)
+      .where(and(gte(shows.broadcastAt, start), lt(shows.broadcastAt, end)))
+      .orderBy(asc(shows.broadcastAt))
   })
 
-export const createEpisode = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data as CreateEpisodeInput)
+export const createShow = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data as CreateShowInput)
   .handler(async ({ data }) => {
     const { auth } = await import('@/lib/auth')
     const { db } = await import('@/db')
-    const { episodes, shows } = await import('@/db/schema')
-    const { getRole, canSchedule, canManageAllShows } = await import('@/lib/roles')
-
-    const session = await auth.api.getSession({ headers: await getRequestHeaders() })
-    if (!session) throw new Error('Unauthorized')
-
-    const role = getRole(session)
-    if (!canSchedule(role)) throw new Error('Forbidden')
-
-    // dj: verify the show belongs to them if one is specified
-    if (data.showId && !canManageAllShows(role)) {
-      const [show] = await db.select().from(shows).where(eq(shows.id, data.showId))
-      if (!show || show.hostUserId !== session.user.id) {
-        throw new Error('Forbidden: not your show')
-      }
-    }
-
-    const [episode] = await db
-      .insert(episodes)
-      .values({
-        title: data.title,
-        description: data.description,
-        showId: data.showId ?? null,
-        broadcastAt: new Date(data.broadcastAt),
-        durationSeconds: data.durationMinutes ? data.durationMinutes * 60 : null,
-        imageUrl: data.imageUrl,
-        audioUrl: data.audioUrl,
-      })
-      .returning()
-
-    scheduleEpisode({
-      id: episode.id,
-      broadcastAt: episode.broadcastAt,
-      audioUrl: episode.audioUrl,
-      title: episode.title,
-      imageUrl: episode.imageUrl,
-      showTitle: null,
-    })
-
-    return episode
-  })
-
-export const updateEpisode = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data as UpdateEpisodeInput)
-  .handler(async ({ data }) => {
-    const { auth } = await import('@/lib/auth')
-    const { db } = await import('@/db')
-    const { episodes, shows } = await import('@/db/schema')
-    const { getRole, canSchedule, canManageAllShows } = await import('@/lib/roles')
-
-    const session = await auth.api.getSession({ headers: await getRequestHeaders() })
-    if (!session) throw new Error('Unauthorized')
-
-    const role = getRole(session)
-    if (!canSchedule(role)) throw new Error('Forbidden')
-
-    if (data.showId && !canManageAllShows(role)) {
-      const [show] = await db.select().from(shows).where(eq(shows.id, data.showId))
-      if (!show || show.hostUserId !== session.user.id) {
-        throw new Error('Forbidden: not your show')
-      }
-    }
-
-    const [episode] = await db
-      .update(episodes)
-      .set({
-        title: data.title,
-        description: data.description,
-        showId: data.showId ?? null,
-        broadcastAt: new Date(data.broadcastAt),
-        durationSeconds: data.durationMinutes ? data.durationMinutes * 60 : null,
-        imageUrl: data.imageUrl,
-        audioUrl: data.audioUrl,
-      })
-      .where(eq(episodes.id, data.id))
-      .returning()
-
-    scheduleEpisode({
-      id: episode.id,
-      broadcastAt: episode.broadcastAt,
-      audioUrl: episode.audioUrl,
-      title: episode.title,
-      imageUrl: episode.imageUrl,
-      showTitle: null,
-    })
-
-    return episode
-  })
-
-export const getUpNext = createServerFn({ method: 'GET' }).handler(async () => {
-  const { db } = await import('@/db')
-  const { episodes, shows } = await import('@/db/schema')
-
-  const [row] = await db
-    .select({
-      id: episodes.id,
-      title: episodes.title,
-      imageUrl: episodes.imageUrl,
-      broadcastAt: episodes.broadcastAt,
-      durationSeconds: episodes.durationSeconds,
-      showTitle: shows.title,
-    })
-    .from(episodes)
-    .leftJoin(shows, eq(shows.id, episodes.showId))
-    .where(gt(episodes.broadcastAt, new Date()))
-    .orderBy(asc(episodes.broadcastAt))
-    .limit(1)
-
-  return row ?? null
-})
-
-export const deleteEpisode = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data as { id: number })
-  .handler(async ({ data }) => {
-    const { auth } = await import('@/lib/auth')
-    const { db } = await import('@/db')
-    const { episodes } = await import('@/db/schema')
+    const { shows } = await import('@/db/schema')
     const { getRole, canSchedule } = await import('@/lib/roles')
 
     const session = await auth.api.getSession({ headers: await getRequestHeaders() })
     if (!session) throw new Error('Unauthorized')
     if (!canSchedule(getRole(session))) throw new Error('Forbidden')
 
-    cancelEpisode(data.id)
-    await db.delete(episodes).where(eq(episodes.id, data.id))
+    const [show] = await db
+      .insert(shows)
+      .values({
+        title: data.title,
+        description: data.description,
+        broadcastAt: new Date(data.broadcastAt),
+        durationSeconds: data.durationMinutes ? data.durationMinutes * 60 : null,
+        imageUrl: data.imageUrl,
+        audioUrl: data.audioUrl,
+        hostName: session.user.name,
+        hostUserId: session.user.id,
+      })
+      .returning()
+
+    scheduleShow(show)
+
+    return show
+  })
+
+export const updateShow = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data as UpdateShowInput)
+  .handler(async ({ data }) => {
+    const { auth } = await import('@/lib/auth')
+    const { db } = await import('@/db')
+    const { shows } = await import('@/db/schema')
+    const { getRole, canSchedule, canManageAllShows } = await import('@/lib/roles')
+
+    const session = await auth.api.getSession({ headers: await getRequestHeaders() })
+    if (!session) throw new Error('Unauthorized')
+
+    const role = getRole(session)
+    if (!canSchedule(role)) throw new Error('Forbidden')
+
+    const [existing] = await db.select().from(shows).where(eq(shows.id, data.id))
+    if (!existing) throw new Error('Show not found')
+    if (!canManageAllShows(role) && existing.hostUserId !== session.user.id) {
+      throw new Error('Forbidden: not your show')
+    }
+
+    const [show] = await db
+      .update(shows)
+      .set({
+        title: data.title,
+        description: data.description,
+        broadcastAt: new Date(data.broadcastAt),
+        durationSeconds: data.durationMinutes ? data.durationMinutes * 60 : null,
+        imageUrl: data.imageUrl,
+        audioUrl: data.audioUrl,
+      })
+      .where(eq(shows.id, data.id))
+      .returning()
+
+    scheduleShow(show)
+
+    return show
+  })
+
+export const getUpNext = createServerFn({ method: 'GET' }).handler(async () => {
+  const { db } = await import('@/db')
+  const { shows } = await import('@/db/schema')
+
+  const [row] = await db
+    .select({
+      id: shows.id,
+      title: shows.title,
+      imageUrl: shows.imageUrl,
+      broadcastAt: shows.broadcastAt,
+      durationSeconds: shows.durationSeconds,
+      hostName: shows.hostName,
+    })
+    .from(shows)
+    .where(gt(shows.broadcastAt, new Date()))
+    .orderBy(asc(shows.broadcastAt))
+    .limit(1)
+
+  return row ?? null
+})
+
+export const deleteShow = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data as { id: number })
+  .handler(async ({ data }) => {
+    const { auth } = await import('@/lib/auth')
+    const { db } = await import('@/db')
+    const { shows } = await import('@/db/schema')
+    const { getRole, canSchedule, canManageAllShows } = await import('@/lib/roles')
+
+    const session = await auth.api.getSession({ headers: await getRequestHeaders() })
+    if (!session) throw new Error('Unauthorized')
+
+    const role = getRole(session)
+    if (!canSchedule(role)) throw new Error('Forbidden')
+
+    const [existing] = await db.select().from(shows).where(eq(shows.id, data.id))
+    if (!existing) return
+    if (!canManageAllShows(role) && existing.hostUserId !== session.user.id) {
+      throw new Error('Forbidden: not your show')
+    }
+
+    cancelShow(data.id)
+    await db.delete(shows).where(eq(shows.id, data.id))
   })
 
 export const stopShow = createServerFn({ method: 'POST' }).handler(async () => {
@@ -188,5 +166,5 @@ export const stopShow = createServerFn({ method: 'POST' }).handler(async () => {
   const session = await auth.api.getSession({ headers: await getRequestHeaders() })
   if (!session || getRole(session) !== 'admin') throw new Error('Unauthorized')
 
-  await stopCurrentEpisode()
+  await stopCurrentShow()
 })

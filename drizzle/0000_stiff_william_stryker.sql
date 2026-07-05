@@ -1,3 +1,4 @@
+CREATE TYPE "public"."show_live_status" AS ENUM('offline', 'starting', 'live');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('user', 'editor', 'dj', 'admin');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" text PRIMARY KEY NOT NULL,
@@ -26,23 +27,11 @@ CREATE TABLE "chat_messages" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "episodes" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"show_id" integer,
-	"title" text NOT NULL,
-	"description" text,
-	"audio_url" text,
-	"image_url" text,
-	"duration_seconds" integer,
-	"broadcast_at" timestamp NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "saved_episodes" (
+CREATE TABLE "saved_shows" (
 	"user_id" text NOT NULL,
-	"episode_id" integer NOT NULL,
+	"show_id" integer NOT NULL,
 	"saved_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "saved_episodes_user_id_episode_id_pk" PRIMARY KEY("user_id","episode_id")
+	CONSTRAINT "saved_shows_user_id_show_id_pk" PRIMARY KEY("user_id","show_id")
 );
 --> statement-breakpoint
 CREATE TABLE "sessions" (
@@ -60,14 +49,25 @@ CREATE TABLE "sessions" (
 CREATE TABLE "shows" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
-	"slug" text NOT NULL,
 	"description" text,
 	"host_name" text,
 	"host_user_id" text,
 	"image_url" text,
-	"schedule" jsonb,
+	"broadcast_at" timestamp NOT NULL,
+	"duration_seconds" integer,
+	"audio_url" text,
+	"stream_key" text,
+	"live_status" "show_live_status" DEFAULT 'offline' NOT NULL,
+	"live_started_at" timestamp,
+	"live_armed_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "shows_slug_unique" UNIQUE("slug")
+	CONSTRAINT "shows_stream_key_unique" UNIQUE("stream_key")
+);
+--> statement-breakpoint
+CREATE TABLE "site_settings" (
+	"key" text PRIMARY KEY NOT NULL,
+	"value" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -93,8 +93,7 @@ CREATE TABLE "verifications" (
 --> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "episodes" ADD CONSTRAINT "episodes_show_id_shows_id_fk" FOREIGN KEY ("show_id") REFERENCES "public"."shows"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "saved_episodes" ADD CONSTRAINT "saved_episodes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "saved_episodes" ADD CONSTRAINT "saved_episodes_episode_id_episodes_id_fk" FOREIGN KEY ("episode_id") REFERENCES "public"."episodes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "saved_shows" ADD CONSTRAINT "saved_shows_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "saved_shows" ADD CONSTRAINT "saved_shows_show_id_shows_id_fk" FOREIGN KEY ("show_id") REFERENCES "public"."shows"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "shows" ADD CONSTRAINT "shows_host_user_id_users_id_fk" FOREIGN KEY ("host_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;

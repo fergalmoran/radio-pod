@@ -28,7 +28,7 @@ export const Route = createFileRoute('/api/live/webhook')({
           const startedAt = Date.now()
           await db
             .update(shows)
-            .set({ liveStatus: 'live', liveStartedAt: new Date(startedAt) })
+            .set({ liveStatus: 'live', liveStartedAt: new Date(startedAt), liveArmedAt: null })
             .where(eq(shows.id, show.id))
 
           markLiveStart()
@@ -43,7 +43,7 @@ export const Route = createFileRoute('/api/live/webhook')({
             startedAt,
           })
         } else if (event === 'notready') {
-          await db.update(shows).set({ liveStatus: 'offline' }).where(eq(shows.id, show.id))
+          await db.update(shows).set({ liveStatus: 'offline', liveArmedAt: null }).where(eq(shows.id, show.id))
           clearLiveGuard()
           await pollIcecastNowPlaying()
         } else {

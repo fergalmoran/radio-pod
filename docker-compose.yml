@@ -103,6 +103,10 @@ services:
     environment:
       MEDIAMTX_WEBHOOK_SECRET: ${MEDIAMTX_WEBHOOK_SECRET:?MEDIAMTX_WEBHOOK_SECRET is required}
       WEBHOOK_BASE_URL: http://web:3000
+      # Publish auth (see mediamtx.yml) — not templated by MediaMTX itself like
+      # runOn* commands are, so the full URL (incl. secret) is set per-environment
+      # here rather than in the checked-in mediamtx.yml.
+      MTX_AUTHHTTPADDRESS: http://web:3000/api/live/auth?secret=${MEDIAMTX_WEBHOOK_SECRET}
     volumes:
       - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
     ports:

@@ -11,7 +11,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'dj', 'admin'])
-export const showLiveStatusEnum = pgEnum('show_live_status', ['offline', 'live'])
+export const showLiveStatusEnum = pgEnum('show_live_status', ['offline', 'starting', 'live'])
 
 // ─── better-auth tables ───────────────────────────────────────────────────────
 
@@ -81,6 +81,9 @@ export const shows = pgTable('shows', {
   streamKey: text('stream_key').unique(),
   liveStatus: showLiveStatusEnum('live_status').notNull().default('offline'),
   liveStartedAt: timestamp('live_started_at'),
+  // Set when "Go Live" arms the show (liveStatus="starting"); MediaMTX's publish
+  // auth webhook only allows OBS to connect within a short window of this.
+  liveArmedAt: timestamp('live_armed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import {
   HeadContent,
   Scripts,
@@ -18,6 +19,8 @@ import type { Session } from '@/lib/auth'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { publicSiteSettingsQueryOptions } from '@/lib/queries/site-settings'
 import { siteSettings as defaults } from '@/lib/site-settings'
+import { useNowPlaying } from '@/lib/use-now-playing'
+import { useHlsVideo } from '@/lib/use-hls-video'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
 
@@ -51,17 +54,31 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
 }
 
 const RootLayout = () => {
+  // Shared across LiveHero (picture) and PlayerBar (site-wide audio control) so
+  // there's exactly one HLS connection driving both — keeps them frame-accurate
+  // instead of two independent pulls of the same stream drifting apart.
+  const nowPlaying = useNowPlaying()
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const isLive = nowPlaying?.type === 'live'
+  const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
+
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Navbar />
       <div className="flex flex-1 min-h-0">
         <Sidebar />
         <main className="flex-1 overflow-y-auto container mx-auto py-6 px-4 pb-24 space-y-6">
-          <LiveHero />
+          <LiveHero
+            nowPlaying={nowPlaying}
+            videoRef={videoRef}
+            levels={levels}
+            currentLevel={currentLevel}
+            setLevel={setLevel}
+          />
           <Outlet />
         </main>
       </div>
-      <PlayerBar />
+      <PlayerBar nowPlaying={nowPlaying} videoRef={videoRef} />
     </div>
   )
 }

@@ -1,5 +1,18 @@
 logLevel: info
 
+# Publish auth: only an explicitly-armed show (via the "Go Live" button,
+# which sets liveStatus="starting") may publish — see /api/live/auth.
+# authHTTPAddress itself is set per-environment via the MTX_AUTHHTTPADDRESS
+# env var in docker-compose(.dev).yml, since (unlike runOn* commands above)
+# this field does not support ${VAR} templating — verified against v1.19.2.
+authMethod: http
+authHTTPExclude:
+  - action: read
+  - action: playback
+  - action: api
+  - action: metrics
+  - action: pprof
+
 rtmp: yes
 rtmpAddress: :1935
 

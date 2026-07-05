@@ -32,6 +32,13 @@ export const goLive = createServerFn({ method: 'POST' })
       await db.update(shows).set({ streamKey }).where(eq(shows.id, show.id))
     }
 
+    // Arm the show so MediaMTX's publish auth webhook (/api/live/auth) will
+    // accept OBS connecting with this stream key — publishing is otherwise
+    // rejected, so hitting "Go Live" is required before OBS can start.
+    if (show.liveStatus !== 'live') {
+      await db.update(shows).set({ liveStatus: 'starting', liveArmedAt: new Date() }).where(eq(shows.id, show.id))
+    }
+
     return {
       rtmpUrl: `${process.env.MEDIAMTX_RTMP_PUBLIC_URL ?? 'rtmp://localhost:1935'}/live`,
       streamKey,
@@ -57,7 +64,7 @@ export const endLive = createServerFn({ method: 'POST' })
     const isOwner = show.hostUserId === session.user.id
     if (!canEndLive(getRole(session), isOwner)) throw new Error('Forbidden')
 
-    await db.update(shows).set({ liveStatus: 'offline' }).where(eq(shows.id, show.id))
+    await db.update(shows).set({ liveStatus: 'offline', liveArmedAt: null }).where(eq(shows.id, show.id))
     clearLiveGuard()
     await pollIcecastNowPlaying()
   })

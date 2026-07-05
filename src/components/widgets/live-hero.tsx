@@ -1,15 +1,38 @@
-import { useRef } from 'react'
-import { useNowPlaying } from '@/lib/use-now-playing'
-import { useHlsVideo } from '@/lib/use-hls-video'
+import { useEffect, useRef, useState, type RefObject } from 'react'
+import type { NowPlayingState } from '@/lib/use-now-playing'
+import type { QualityLevel } from '@/lib/use-hls-video'
 import { VideoControls } from '@/components/widgets/video-controls'
+import { Icons } from '@/components/icons'
 
-export const LiveHero = () => {
-  const nowPlaying = useNowPlaying()
+type LiveHeroProps = {
+  nowPlaying: NowPlayingState | null
+  videoRef: RefObject<HTMLVideoElement | null>
+  levels: QualityLevel[]
+  currentLevel: number
+  setLevel: (index: number) => void
+}
+
+export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel }: LiveHeroProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isBuffering, setIsBuffering] = useState(true)
   const isLive = nowPlaying?.type === 'live'
 
-  const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
+  // HLS takes a few seconds to hand back the first playable segment — show a
+  // spinner instead of a blank black frame for that window (and again for
+  // any later rebuffer), rather than looking broken.
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !isLive) return
+    setIsBuffering(true)
+    const onWaiting = () => setIsBuffering(true)
+    const onPlaying = () => setIsBuffering(false)
+    video.addEventListener('waiting', onWaiting)
+    video.addEventListener('playing', onPlaying)
+    return () => {
+      video.removeEventListener('waiting', onWaiting)
+      video.removeEventListener('playing', onPlaying)
+    }
+  }, [videoRef, isLive])
 
   if (!isLive) return null
 
@@ -17,6 +40,12 @@ export const LiveHero = () => {
     <div className="rounded-xl border bg-card overflow-hidden">
       <div ref={containerRef} className="relative w-full aspect-video bg-black">
         <video ref={videoRef} autoPlay muted playsInline className="h-full w-full" />
+        {isBuffering && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 text-white">
+            <Icons.Loader className="h-8 w-8 animate-spin" />
+            <span className="text-sm font-medium">Waiting for connection…</span>
+          </div>
+        )}
         <VideoControls
           videoRef={videoRef}
           containerRef={containerRef}

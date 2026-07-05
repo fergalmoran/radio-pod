@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
-import { nowPlayingDebugQueryOptions } from '@/lib/queries'
+import { nowPlayingDebugQueryOptions, versionCheckQueryOptions } from '@/lib/queries'
 
 const fmtTime = (epochMs: number | null | undefined) => {
   if (!epochMs) return '—'
@@ -25,6 +25,7 @@ const typeVariant = (type: string): 'default' | 'destructive' | 'secondary' => {
 
 const DebugPage = () => {
   const { data, isLoading, error } = useQuery(nowPlayingDebugQueryOptions)
+  const { data: versionCheck } = useQuery(versionCheckQueryOptions)
 
   if (isLoading || !data) {
     return <p className="text-sm text-muted-foreground">Loading…</p>
@@ -43,6 +44,21 @@ const DebugPage = () => {
           Refreshes every 3s · server time {fmtTime(now)}
         </p>
       </div>
+
+      {/* Version */}
+      {versionCheck && (
+        <div className="rounded-xl border bg-card p-4 flex items-center justify-between text-sm">
+          <span>
+            Running <span className="font-medium">{versionCheck.current}</span>
+            {versionCheck.latest && <span className="text-muted-foreground"> · latest release {versionCheck.latest}</span>}
+          </span>
+          {versionCheck.updateAvailable && (
+            <a href={versionCheck.releaseUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+              Update available →
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Current state */}
       <div className="rounded-xl border bg-card p-4 space-y-3">

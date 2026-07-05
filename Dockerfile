@@ -24,4 +24,9 @@ RUN chmod +x docker-entrypoint.sh
 
 EXPOSE 3000
 ENV NODE_ENV=production
+# Baked in at build time from the triggering release tag (or commit SHA for
+# workflow_dispatch builds) — see .github/workflows/deploy.yml. Lets the running
+# app report its own version on /debug and check for newer releases.
+ARG RELEASE_VERSION=dev
+ENV RELEASE_VERSION=${RELEASE_VERSION}
 ENTRYPOINT ["./docker-entrypoint.sh"]

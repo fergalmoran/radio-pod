@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 
+const MUTED_STORAGE_KEY = 'radio-muted'
+
 export const useRadioAudio = (videoRef: RefObject<HTMLVideoElement | null>, isLive: boolean) => {
   const audioRef = useRef<HTMLAudioElement>(null)
-  const [isMuted, setIsMuted] = useState(false)
+  const [isMuted, setIsMuted] = useState(
+    () => (typeof localStorage !== 'undefined' ? localStorage.getItem(MUTED_STORAGE_KEY) === 'true' : false)
+  )
   const streamUrl = import.meta.env.VITE_STREAM_URL ?? '/api/stream'
 
   // Attempt autoplay on mount; if blocked, toggleMute's play() call recovers it
@@ -35,6 +39,7 @@ export const useRadioAudio = (videoRef: RefObject<HTMLVideoElement | null>, isLi
   const toggleMute = () => {
     const next = !isMuted
     setIsMuted(next)
+    localStorage.setItem(MUTED_STORAGE_KEY, String(next))
     const media = isLive ? videoRef.current : audioRef.current
     if (!media) return
     media.muted = next

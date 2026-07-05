@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { showsQueryOptions } from '@/lib/queries'
-import { getRole, canCreateShow } from '@/lib/roles'
+import { getRole, canSchedule } from '@/lib/roles'
 
 import { Icons } from '@/components/icons'
 import { useSiteSettings } from '@/lib/use-site-settings'
@@ -20,7 +20,7 @@ const ShowsPage = () => {
         </div>
         {canCreate && (
           <Button asChild size="sm">
-            <Link to="/shows/new">
+            <Link to="/schedule">
               <Icons.Plus className="h-4 w-4" />
               New show
             </Link>
@@ -33,7 +33,7 @@ const ShowsPage = () => {
           <p className="text-muted-foreground text-sm">No shows yet.</p>
           {canCreate && (
             <Button asChild size="sm" className="mt-4">
-              <Link to="/shows/new">Create the first show</Link>
+              <Link to="/schedule">Create the first show</Link>
             </Button>
           )}
         </div>
@@ -77,7 +77,7 @@ const ShowsPage = () => {
 export const Route = createFileRoute('/shows')({
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(showsQueryOptions)
-    return { canCreate: canCreateShow(getRole(context.session)) }
+    return { canCreate: canSchedule(getRole(context.session)) }
   },
   component: ShowsPage,
 })

@@ -128,6 +128,11 @@ export const Navbar = () => {
                         Admin Dashboard
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/debug" className="cursor-pointer w-full">
+                        Debug: Now Playing
+                      </Link>
+                    </DropdownMenuItem>
                   </>
                 )}
                 <DropdownMenuSeparator />

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import { Icons } from '../icons'
 
-type Episode = {
+type ShowOccurrence = {
   id: number
   title: string
   description: string | null
@@ -9,16 +9,16 @@ type Episode = {
   imageUrl: string | null
   broadcastAt: Date
   durationSeconds: number | null
-  showId: number | null
-  showTitle: string | null
+  hostName: string | null
+  hostUserId: string | null
 }
 
 type Props = {
   month: string // "YYYY-MM"
-  episodes: Episode[]
+  shows: ShowOccurrence[]
   canSchedule: boolean
   onSchedule: (date: Date) => void
-  onEdit: (episode: Episode) => void
+  onEdit: (show: ShowOccurrence) => void
 }
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -37,7 +37,7 @@ const isSameDay = (a: Date | string, b: Date) => {
   )
 }
 
-export const MonthCalendar = ({ month, episodes, canSchedule, onSchedule, onEdit }: Props) => {
+export const MonthCalendar = ({ month, shows, canSchedule, onSchedule, onEdit }: Props) => {
   const [year, monthNum] = month.split('-').map(Number)
   const today = new Date()
 
@@ -53,10 +53,10 @@ export const MonthCalendar = ({ month, episodes, canSchedule, onSchedule, onEdit
     const date = new Date(year, monthNum - 1, dayNum)
     const isCurrentMonth = dayNum >= 1 && dayNum <= daysInMonth
     const isToday = isCurrentMonth && isSameDay(today, date)
-    const dayEpisodes = isCurrentMonth
-      ? episodes.filter((ep) => isSameDay(ep.broadcastAt, date))
+    const dayShows = isCurrentMonth
+      ? shows.filter((s) => isSameDay(s.broadcastAt, date))
       : []
-    return { date, isCurrentMonth, isToday, dayEpisodes }
+    return { date, isCurrentMonth, isToday, dayShows }
   })
 
   const weeks: typeof cells[] = []
@@ -82,7 +82,7 @@ export const MonthCalendar = ({ month, episodes, canSchedule, onSchedule, onEdit
       <div className="divide-y">
         {weeks.map((week, wi) => (
           <div key={wi} className="grid grid-cols-7 divide-x">
-            {week.map(({ date, isCurrentMonth, isToday, dayEpisodes }, di) => (
+            {week.map(({ date, isCurrentMonth, isToday, dayShows }, di) => (
               <div
                 key={di}
                 className={cn(
@@ -117,26 +117,26 @@ export const MonthCalendar = ({ month, episodes, canSchedule, onSchedule, onEdit
                   )}
                 </div>
 
-                {/* Episodes */}
+                {/* Shows */}
                 <div className="flex flex-col gap-0.5">
-                  {dayEpisodes.slice(0, MAX_VISIBLE).map((ep) => (
+                  {dayShows.slice(0, MAX_VISIBLE).map((s) => (
                     <div
-                      key={ep.id}
-                      onClick={(e) => { e.stopPropagation(); if (canSchedule) onEdit(ep) }}
+                      key={s.id}
+                      onClick={(e) => { e.stopPropagation(); if (canSchedule) onEdit(s) }}
                       className={cn(
                         'flex items-baseline gap-1 rounded px-1.5 py-0.5 bg-primary/15 hover:bg-primary/25 transition-colors',
                         canSchedule ? 'cursor-pointer' : 'cursor-default',
                       )}
                     >
                       <span className="text-[10px] font-semibold text-primary shrink-0 tabular-nums">
-                        {formatTime(ep.broadcastAt)}
+                        {formatTime(s.broadcastAt)}
                       </span>
-                      <span className="text-[10px] text-foreground/80 truncate">{ep.title}</span>
+                      <span className="text-[10px] text-foreground/80 truncate">{s.title}</span>
                     </div>
                   ))}
-                  {dayEpisodes.length > MAX_VISIBLE && (
+                  {dayShows.length > MAX_VISIBLE && (
                     <p className="text-[10px] text-muted-foreground pl-1">
-                      +{dayEpisodes.length - MAX_VISIBLE} more
+                      +{dayShows.length - MAX_VISIBLE} more
                     </p>
                   )}
                 </div>

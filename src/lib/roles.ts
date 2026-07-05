@@ -14,10 +14,6 @@ export const canManageAllShows = (role: UserRole): boolean => {
   return role === 'admin' || role === 'editor'
 }
 
-export const canCreateShow = (role: UserRole): boolean => {
-  return role === 'admin' || role === 'editor'
-}
-
 export const canEndLive = (role: UserRole, isOwner: boolean): boolean => {
   return isOwner || canManageAllShows(role)
 }

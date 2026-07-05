@@ -74,18 +74,34 @@ export const OnAirNow = ({ isMuted, onToggleMute }: OnAirNowProps) => {
 
   return (
     <div className="rounded-lg border bg-card px-3 py-2.5 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {isLive ? 'Live' : isEpisode ? 'On Air' : 'Now Playing'}
           </span>
         </div>
-        {hasTiming && (
-          <span className="text-[10px] text-muted-foreground tabular-nums">
-            {fmtTime(nowPlaying.startsAt!)} – {fmtTime(nowPlaying.endsAt!)}
-          </span>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {hasTiming && (
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {fmtTime(nowPlaying.startsAt!)} – {fmtTime(nowPlaying.endsAt!)}
+            </span>
+          )}
+          {!isLive && onToggleMute && (
+            <button
+              type="button"
+              onClick={onToggleMute}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? (
+                <Icons.VolumeX className="h-3.5 w-3.5" />
+              ) : (
+                <Icons.Volume2 className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Track row */}
@@ -115,21 +131,6 @@ export const OnAirNow = ({ isMuted, onToggleMute }: OnAirNowProps) => {
             <TooltipContent>{nowPlaying.title}</TooltipContent>
           </Tooltip>
         </div>
-
-        {!isLive && onToggleMute && (
-          <button
-            type="button"
-            onClick={onToggleMute}
-            className="ml-auto shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
-          >
-            {isMuted ? (
-              <Icons.VolumeX className="h-4 w-4" />
-            ) : (
-              <Icons.Volume2 className="h-4 w-4" />
-            )}
-          </button>
-        )}
       </div>
 
       {isAdmin && isEpisode && (

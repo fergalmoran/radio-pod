@@ -3,8 +3,8 @@ import { createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-r
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { MonthCalendar } from '@/components/schedule/month-calendar'
-import { ScheduleEpisodeDialog } from '@/components/schedule/schedule-episode-dialog'
-import { episodesForMonthQueryOptions, showsForUserQueryOptions } from '@/lib/queries'
+import { ScheduleShowDialog } from '@/components/schedule/schedule-show-dialog'
+import { showsForMonthQueryOptions } from '@/lib/queries'
 import { getRole, canSchedule } from '@/lib/roles'
 import { Icons } from '@/components/icons'
 
@@ -32,25 +32,25 @@ const SchedulePage = () => {
   const role = getRole(session)
   const userCanSchedule = canSchedule(role)
 
-  const { data: episodes } = useSuspenseQuery(episodesForMonthQueryOptions(month))
+  const { data: shows } = useSuspenseQuery(showsForMonthQueryOptions(month))
 
   const navigate = useNavigate({ from: '/schedule' })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogDate, setDialogDate] = useState<Date | null>(null)
-  const [editingEpisode, setEditingEpisode] = useState<(typeof episodes)[number] | null>(null)
+  const [editingShow, setEditingShow] = useState<(typeof shows)[number] | null>(null)
 
   const goToMonth = (delta: number) => {
     navigate({ search: { month: shiftMonth(month, delta) } })
   }
 
   const handleSchedule = (date: Date) => {
-    setEditingEpisode(null)
+    setEditingShow(null)
     setDialogDate(date)
     setDialogOpen(true)
   }
 
-  const handleEdit = (episode: (typeof episodes)[number]) => {
-    setEditingEpisode(episode)
+  const handleEdit = (show: (typeof shows)[number]) => {
+    setEditingShow(show)
     setDialogOpen(true)
   }
 
@@ -78,7 +78,7 @@ const SchedulePage = () => {
           {userCanSchedule && (
             <Button size="sm" onClick={() => handleSchedule(new Date())}>
               <Icons.CalendarPlus className="h-4 w-4" />
-              Schedule episode
+              Schedule show
             </Button>
           )}
         </div>
@@ -86,7 +86,7 @@ const SchedulePage = () => {
 
       <MonthCalendar
         month={month}
-        episodes={episodes}
+        shows={shows}
         canSchedule={userCanSchedule}
         onSchedule={handleSchedule}
         onEdit={handleEdit}
@@ -94,16 +94,16 @@ const SchedulePage = () => {
 
       {!userCanSchedule && (
         <p className="text-xs text-muted-foreground text-center">
-          Sign in as an admin, editor, or host to schedule episodes.
+          Sign in as an admin, editor, or host to schedule shows.
         </p>
       )}
 
       {userCanSchedule && (
-        <ScheduleEpisodeDialog
+        <ScheduleShowDialog
           open={dialogOpen}
-          onClose={() => { setDialogOpen(false); setEditingEpisode(null) }}
+          onClose={() => { setDialogOpen(false); setEditingShow(null) }}
           defaultDate={dialogDate}
-          episode={editingEpisode}
+          show={editingShow}
         />
       )}
     </div>
@@ -116,10 +116,7 @@ export const Route = createFileRoute('/schedule')({
   }),
   loaderDeps: ({ search }) => ({ month: search.month ?? getCurrentMonth() }),
   loader: async ({ deps, context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(episodesForMonthQueryOptions(deps.month)),
-      context.queryClient.ensureQueryData(showsForUserQueryOptions),
-    ])
+    await context.queryClient.ensureQueryData(showsForMonthQueryOptions(deps.month))
   },
   component: SchedulePage,
 })

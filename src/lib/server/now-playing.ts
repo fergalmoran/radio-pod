@@ -16,6 +16,8 @@ export type NowPlayingState = {
 }
 
 let state: NowPlayingState | null = null
+let stateReason = 'No state set yet'
+let stateSetAt = 0 // epoch ms
 let episodeEndsAt = 0 // epoch ms; 0 means no episode expected
 let liveActive = false
 const clients = new Set<ReadableStreamDefaultController<Uint8Array>>()
@@ -25,8 +27,16 @@ export const getNowPlaying = (): NowPlayingState | null => {
   return state
 }
 
-export const setNowPlaying = (s: NowPlayingState): void => {
+/** Human-readable explanation of why the current state was set — surfaced on
+ *  the /debug page so "why is this playing" doesn't require reading logs. */
+export const getNowPlayingDebug = (): { reason: string; setAt: number } => {
+  return { reason: stateReason, setAt: stateSetAt }
+}
+
+export const setNowPlaying = (s: NowPlayingState, reason = 'Unknown'): void => {
   state = s
+  stateReason = reason
+  stateSetAt = Date.now()
   const chunk = encoder.encode(`data: ${JSON.stringify(s)}\n\n`)
   for (const ctrl of clients) {
     try {
@@ -47,6 +57,8 @@ export const markEpisodeStart = (durationSeconds: number): void => {
 export const isEpisodeExpected = (): boolean => {
   return Date.now() < episodeEndsAt
 }
+
+export const getEpisodeEndsAt = (): number => episodeEndsAt
 
 /** Lifts the episode guard window, e.g. when an episode is stopped early. */
 export const clearEpisodeGuard = (): void => {
@@ -94,11 +106,14 @@ export const pollIcecastNowPlaying = async (): Promise<void> => {
       : data.icestats.source
     if (!src) return
     const { name } = await getSiteSettings()
-    setNowPlaying({
-      type: 'dead-air',
-      title: src.title ?? name,
-      artist: src.artist ?? name,
-    })
+    setNowPlaying(
+      {
+        type: 'dead-air',
+        title: src.title ?? name,
+        artist: src.artist ?? name,
+      },
+      `Icecast metadata poll (station rotation / dead air) — source title "${src.title ?? '(none)'}"`,
+    )
   } catch {
     // Icecast not reachable yet — no-op
   }

@@ -28,11 +28,16 @@ export const Route = createFileRoute('/api/liquidsoap/now-playing')({
         const displayTitle =
           title || filename.split('/').pop()?.replace(/\.[^.]+$/, '') || siteName
 
-        setNowPlaying({
-          type: isEpisode ? 'episode' : 'dead-air',
-          title: displayTitle,
-          artist: isEpisode ? (artist || siteName) : siteName,
-        })
+        setNowPlaying(
+          {
+            type: isEpisode ? 'episode' : 'dead-air',
+            title: displayTitle,
+            artist: isEpisode ? (artist || siteName) : siteName,
+          },
+          isEpisode
+            ? `Liquidsoap on_track: playing scheduled show audio file (${filename})`
+            : `Liquidsoap on_track: station rotation / dead air track (${filename || '(no filename)'})`,
+        )
 
         return new Response(null, { status: 204 })
       },

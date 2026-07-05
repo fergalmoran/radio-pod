@@ -19,6 +19,7 @@ import { getSession } from '@/server/fns/auth-fns'
 import type { Session } from '@/lib/auth'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { publicSiteSettingsQueryOptions } from '@/lib/queries/site-settings'
+import { upNextQueryOptions } from '@/lib/queries'
 import { siteSettings as defaults } from '@/lib/site-settings'
 import { useNowPlaying } from '@/lib/use-now-playing'
 import { useHlsVideo } from '@/lib/use-hls-video'
@@ -134,8 +135,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     const session = await getSession()
     return { session }
   },
-  loader: ({ context }) =>
-    context.queryClient.ensureQueryData(publicSiteSettingsQueryOptions),
+  loader: async ({ context }) => {
+    const [siteSettings] = await Promise.all([
+      context.queryClient.ensureQueryData(publicSiteSettingsQueryOptions),
+      context.queryClient.ensureQueryData(upNextQueryOptions),
+    ])
+    return siteSettings
+  },
   head: ({ loaderData }) => ({
     meta: [
       { charSet: 'utf-8' },

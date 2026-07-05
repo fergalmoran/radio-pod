@@ -3,6 +3,7 @@ import type { NowPlayingState } from '@/lib/use-now-playing'
 import type { QualityLevel } from '@/lib/use-hls-video'
 import { VideoControls } from '@/components/widgets/video-controls'
 import { Icons } from '@/components/icons'
+import { cn } from '@/lib/utils'
 
 type LiveHeroProps = {
   nowPlaying: NowPlayingState | null
@@ -10,9 +11,12 @@ type LiveHeroProps = {
   levels: QualityLevel[]
   currentLevel: number
   setLevel: (index: number) => void
+  // At lg+, fill the height handed down by a theater-mode flex row instead of
+  // the usual width-driven aspect-video box — see __root.tsx's isTheater layout.
+  fillHeight?: boolean
 }
 
-export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel }: LiveHeroProps) => {
+export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel, fillHeight }: LiveHeroProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isBuffering, setIsBuffering] = useState(true)
   const isLive = nowPlaying?.type === 'live'
@@ -37,9 +41,22 @@ export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel 
   if (!isLive) return null
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden">
-      <div ref={containerRef} className="relative w-full aspect-video bg-black">
-        <video ref={videoRef} autoPlay muted playsInline className="h-full w-full" />
+    <div className={cn('rounded-xl border bg-card overflow-hidden', fillHeight && 'lg:h-full')}>
+      <div
+        ref={containerRef}
+        className={cn('relative w-full aspect-video bg-black', fillHeight && 'lg:aspect-auto lg:h-full')}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className={cn('h-full w-full', fillHeight && 'lg:object-contain')}
+        />
+        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-white">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider">Live</span>
+        </div>
         {isBuffering && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 text-white">
             <Icons.Loader className="h-8 w-8 animate-spin" />
@@ -53,11 +70,6 @@ export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel 
           currentLevel={currentLevel}
           onSelectLevel={setLevel}
         />
-      </div>
-      <div className="flex items-center gap-2 px-4 py-3 min-w-0">
-        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground shrink-0">Live</span>
-        <p className="text-sm font-medium truncate min-w-0">{nowPlaying.title}</p>
       </div>
     </div>
   )

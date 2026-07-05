@@ -1,9 +1,10 @@
-import { Suspense, useRef } from 'react'
+import { useRef } from 'react'
 import {
   HeadContent,
   Scripts,
   createRootRouteWithContext,
   Outlet,
+  useRouterState,
 } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { getContext } from '@/integrations/tanstack-query/root-provider'
@@ -12,8 +13,6 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { PlayerBar } from '@/components/layout/player-bar'
 import { LiveHero } from '@/components/widgets/live-hero'
 import { OnAirNow } from '@/components/widgets/on-air-now'
-import { UpNext } from '@/components/widgets/up-next'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from 'next-themes'
 import appCss from '@/app.css?url'
@@ -24,6 +23,7 @@ import { publicSiteSettingsQueryOptions } from '@/lib/queries/site-settings'
 import { siteSettings as defaults } from '@/lib/site-settings'
 import { useNowPlaying } from '@/lib/use-now-playing'
 import { useHlsVideo } from '@/lib/use-hls-video'
+import { cn } from '@/lib/utils'
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
 
@@ -64,27 +64,54 @@ const RootLayout = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const isLive = nowPlaying?.type === 'live'
   const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  // On the home page while live, pair the video with chat side-by-side and fit
+  // both to the viewport at lg+ instead of stacking them (which pushed chat
+  // below the fold and forced scrolling to see the whole stream).
+  const isTheater = isLive && pathname === '/'
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
       <Navbar />
       <div className="flex flex-1 min-h-0">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 pb-24 space-y-4 sm:space-y-6">
-          <div className="lg:hidden space-y-3">
+        <main
+          className={cn(
+            'flex-1 overflow-y-auto container mx-auto pt-4 sm:pt-6 px-3 sm:px-4 pb-24 space-y-4 sm:space-y-6',
+            isTheater && 'lg:overflow-hidden lg:flex lg:flex-col lg:min-h-0 lg:space-y-0'
+          )}
+        >
+          <div className="lg:hidden">
             <OnAirNow />
-            <Suspense fallback={<Skeleton className="h-16 w-full rounded-lg" />}>
-              <UpNext />
-            </Suspense>
           </div>
-          <LiveHero
-            nowPlaying={nowPlaying}
-            videoRef={videoRef}
-            levels={levels}
-            currentLevel={currentLevel}
-            setLevel={setLevel}
-          />
-          <Outlet />
+          {isTheater ? (
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+              <div className="lg:flex-1 lg:min-w-0 lg:min-h-0">
+                <LiveHero
+                  nowPlaying={nowPlaying}
+                  videoRef={videoRef}
+                  levels={levels}
+                  currentLevel={currentLevel}
+                  setLevel={setLevel}
+                  fillHeight
+                />
+              </div>
+              <div className="h-[60vh] lg:h-auto lg:w-96 lg:shrink-0 lg:min-h-0">
+                <Outlet />
+              </div>
+            </div>
+          ) : (
+            <>
+              <LiveHero
+                nowPlaying={nowPlaying}
+                videoRef={videoRef}
+                levels={levels}
+                currentLevel={currentLevel}
+                setLevel={setLevel}
+              />
+              <Outlet />
+            </>
+          )}
         </main>
       </div>
       <PlayerBar nowPlaying={nowPlaying} videoRef={videoRef} />

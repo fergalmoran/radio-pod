@@ -1,8 +1,6 @@
 name: Build and push image
 
 on:
-  push:
-    branches: [trunk]
   release:
     types: [published]
   workflow_dispatch: {}

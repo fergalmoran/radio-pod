@@ -8,12 +8,26 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
-import { createShow, updateShow } from '@/server/fns/schedule-fns'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Icons } from '@/components/icons'
+import { createShow, updateShow, deleteShow } from '@/server/fns/schedule-fns'
+import type { ShowRecurrence } from '@/db/schema'
 
 type ShowOccurrence = {
   id: number
@@ -23,6 +37,14 @@ type ShowOccurrence = {
   durationSeconds: number | null
   imageUrl: string | null
   audioUrl: string | null
+  recurrence: ShowRecurrence
+  seriesId: number | null
+}
+
+const RECURRENCE_LABELS: Record<ShowRecurrence, string> = {
+  once: 'One-off',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
 }
 
 type Props = {
@@ -49,9 +71,11 @@ export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) 
   const [duration, setDuration] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [audioUrl, setAudioUrl] = useState('')
+  const [recurrence, setRecurrence] = useState<ShowRecurrence>('once')
   const [audioUploading, setAudioUploading] = useState(false)
   const [audioProgress, setAudioProgress] = useState(0)
   const [imageUploading, setImageUploading] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   useEffect(() => {
     if (show) {
@@ -61,6 +85,7 @@ export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) 
       setDuration(show.durationSeconds ? String(show.durationSeconds / 60) : '')
       setImageUrl(show.imageUrl ?? '')
       setAudioUrl(show.audioUrl ?? '')
+      setRecurrence(show.recurrence)
     } else {
       setTitle('')
       setDescription('')
@@ -68,10 +93,12 @@ export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) 
       setDuration('')
       setImageUrl('')
       setAudioUrl('')
+      setRecurrence('once')
     }
     setAudioUploading(false)
     setAudioProgress(0)
     setImageUploading(false)
+    setDeleteConfirmOpen(false)
   }, [show, defaultDate, open])
 
   const uploadFileWithProgress = (
@@ -132,6 +159,7 @@ export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) 
     durationMinutes: duration ? Number(duration) : undefined,
     imageUrl: imageUrl || undefined,
     audioUrl: audioUrl || undefined,
+    recurrence,
   })
 
   const createMutation = useMutation({
@@ -141,6 +169,11 @@ export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) 
 
   const updateMutation = useMutation({
     mutationFn: () => updateShow({ data: { id: show!.id, ...sharedData() } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['shows'] }); handleClose() },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteShow({ data: { id: show!.id } }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['shows'] }); handleClose() },
   })
 
@@ -215,6 +248,27 @@ export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) 
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="show-recurrence">Repeats</Label>
+            <Select value={recurrence} onValueChange={(v) => setRecurrence(v as ShowRecurrence)}>
+              <SelectTrigger id="show-recurrence">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(RECURRENCE_LABELS) as ShowRecurrence[]).map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {RECURRENCE_LABELS[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {show?.seriesId && (
+              <p className="text-xs text-muted-foreground">
+                Changes and deletion apply to this and every future occurrence.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="show-audio">Audio file</Label>
             <Input
               id="show-audio"
@@ -255,7 +309,50 @@ export const ScheduleShowDialog = ({ open, onClose, defaultDate, show }: Props) 
             </p>
           )}
 
+          {deleteMutation.isError && (
+            <p className="text-sm text-destructive">
+              {deleteMutation.error instanceof Error ? deleteMutation.error.message : 'Failed to delete show'}
+            </p>
+          )}
+
           <DialogFooter>
+            {isEditing && (
+              <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="sm:mr-auto"
+                    disabled={mutation.isPending || deleteMutation.isPending}
+                  >
+                    <Icons.Trash className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this show?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {show?.seriesId
+                        ? `This will remove "${show.title}" and every future occurrence of this recurring show. Past occurrences are kept for Listen Back.`
+                        : `This will permanently remove "${show?.title}" from the schedule.`}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={deleteMutation.isPending}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        deleteMutation.mutate()
+                      }}
+                    >
+                      {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <Button type="button" variant="outline" onClick={handleClose} disabled={mutation.isPending}>
               Cancel
             </Button>

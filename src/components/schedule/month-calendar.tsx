@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { Icons } from '../icons'
+import type { ShowRecurrence } from '@/db/schema'
 
 type ShowOccurrence = {
   id: number
@@ -11,6 +12,8 @@ type ShowOccurrence = {
   durationSeconds: number | null
   hostName: string | null
   hostUserId: string | null
+  recurrence: ShowRecurrence
+  seriesId: number | null
 }
 
 type Props = {
@@ -132,6 +135,9 @@ export const MonthCalendar = ({ month, shows, canSchedule, onSchedule, onEdit }:
                         {formatTime(s.broadcastAt)}
                       </span>
                       <span className="text-[10px] text-foreground/80 truncate">{s.title}</span>
+                      {s.recurrence !== 'once' && (
+                        <Icons.Repeat className="h-2.5 w-2.5 text-primary/70 shrink-0" />
+                      )}
                     </div>
                   ))}
                   {dayShows.length > MAX_VISIBLE && (

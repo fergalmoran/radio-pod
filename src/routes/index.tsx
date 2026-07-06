@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 const HomePage = () => {
   return (
-    <div className="flex gap-6 h-full">
+    <div className="flex gap-6 flex-1 min-h-0">
       <div className="flex-1 min-w-0 h-full">
         <Chat />
       </div>

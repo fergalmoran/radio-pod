@@ -31,11 +31,17 @@ export const getScheduledJobs = (): { id: number; title: string; broadcastAt: Da
     .sort((a, b) => a.broadcastAt.getTime() - b.broadcastAt.getTime())
 }
 
+const refreshSchedule = async (): Promise<void> => {
+  const { materializeAllSeries } = await import('./series')
+  await materializeAllSeries()
+  await loadAndScheduleShows()
+}
+
 export const ensureRunning = (): void => {
   if (initialized) return
   initialized = true
-  void loadAndScheduleShows()
-  setInterval(() => void loadAndScheduleShows(), 24 * 60 * 60 * 1000)
+  void refreshSchedule()
+  setInterval(() => void refreshSchedule(), 24 * 60 * 60 * 1000)
   // Restore in-progress show state before the first Icecast poll so the
   // guard window is armed and the dead-air poll doesn't overwrite it.
   void resumeCurrentShow().then(() => {

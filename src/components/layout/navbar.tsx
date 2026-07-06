@@ -102,7 +102,9 @@ export const Navbar = () => {
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           {session?.user && canSchedule(role) && (
-            <GoLiveDialog role={role} userId={session.user.id} />
+            <div className="hidden md:block">
+              <GoLiveDialog role={role} userId={session.user.id} />
+            </div>
           )}
           <ThemeToggle />
           {session?.user ? (

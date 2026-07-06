@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
 import { Link } from '@tanstack/react-router'
 import { chatMessagesQueryOptions, chatUsersQueryOptions } from '@/lib/queries/chat'
-import { sendChatMessage } from '@/server/fns/chat-fns'
+import { deleteChatMessage, sendChatMessage } from '@/server/fns/chat-fns'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/components/icons'
 import { ChatMessageItem, isMentionedInMessage, type ChatMessageData } from './chat-message'
@@ -39,6 +39,8 @@ export const Chat = () => {
   const { data: messages = [] } = useQuery(chatMessagesQueryOptions)
   const { data: chatUsers = [] } = useQuery(chatUsersQueryOptions)
   const currentUserName = session?.user.name
+  const currentUserId = session?.user.id
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'admin'
 
   useEffect(() => {
     const known = prevMessageIdsRef.current
@@ -55,6 +57,11 @@ export const Chat = () => {
 
   const sendMutation = useMutation({
     mutationFn: sendChatMessage,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteChatMessage,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] }),
   })
 
@@ -88,6 +95,10 @@ export const Chat = () => {
   const handleScrollToMessage = (id: number) => {
     const el = scrollRef.current?.querySelector(`[data-message-id="${id}"]`)
     el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
+  const handleDelete = (msg: ChatMessageData) => {
+    deleteMutation.mutate({ data: { id: msg.id } })
   }
 
   const handleSend = () => {
@@ -137,8 +148,11 @@ export const Chat = () => {
               key={msg.id}
               message={msg}
               currentUserName={currentUserName}
+              currentUserId={currentUserId}
+              isAdmin={isAdmin}
               onReply={session ? handleReply : undefined}
               onScrollToMessage={handleScrollToMessage}
+              onDelete={session ? handleDelete : undefined}
             />
           ))
         )}

@@ -48,11 +48,22 @@ const timeLabel = (date: Date | string) => {
 type Props = {
   message: ChatMessageData
   currentUserName?: string
+  currentUserId?: string
+  isAdmin?: boolean
   onReply?: (message: ChatMessageData) => void
   onScrollToMessage?: (id: number) => void
+  onDelete?: (message: ChatMessageData) => void
 }
 
-export const ChatMessageItem = ({ message, currentUserName, onReply, onScrollToMessage }: Props) => {
+export const ChatMessageItem = ({
+  message,
+  currentUserName,
+  currentUserId,
+  isAdmin,
+  onReply,
+  onScrollToMessage,
+  onDelete,
+}: Props) => {
   const initials = message.userName
     .split(' ')
     .map((n) => n[0])
@@ -84,16 +95,28 @@ export const ChatMessageItem = ({ message, currentUserName, onReply, onScrollToM
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-xs font-semibold">{message.userName}</span>
           <span className="text-xs text-muted-foreground">{timeLabel(message.createdAt)}</span>
-          {onReply && (
-            <button
-              type="button"
-              onClick={() => onReply(message)}
-              className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-0.5 rounded"
-              aria-label="Reply"
-            >
-              <Icons.Reply className="h-3 w-3" />
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onReply && (
+              <button
+                type="button"
+                onClick={() => onReply(message)}
+                className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+                aria-label="Reply"
+              >
+                <Icons.Reply className="h-3 w-3" />
+              </button>
+            )}
+            {onDelete && (isAdmin || currentUserId === message.userId) && (
+              <button
+                type="button"
+                onClick={() => onDelete(message)}
+                className="text-muted-foreground hover:text-destructive p-0.5 rounded"
+                aria-label="Delete message"
+              >
+                <Icons.Trash className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
 
         {replyPreview && (

@@ -21,7 +21,7 @@ const shiftMonth = (month: string, delta: number) => {
 
 const formatMonthTitle = (month: string) => {
   const [y, m] = month.split('-').map(Number)
-  return new Date(y, m - 1, 1).toLocaleDateString([], { month: 'long', year: 'numeric' })
+  return new Date(y, m - 1, 1).toLocaleDateString('en-IE', { month: 'long', year: 'numeric' })
 }
 
 const SchedulePage = () => {

@@ -11,6 +11,7 @@ import {
 
 export const userRoleEnum = pgEnum('user_role', ['user', 'editor', 'dj', 'admin'])
 export const showLiveStatusEnum = pgEnum('show_live_status', ['offline', 'starting', 'live'])
+export const showRecurrenceEnum = pgEnum('show_recurrence', ['once', 'weekly', 'monthly'])
 
 // ─── better-auth tables ───────────────────────────────────────────────────────
 
@@ -68,10 +69,11 @@ export const verifications = pgTable('verifications', {
 
 // ─── radio app tables ─────────────────────────────────────────────────────────
 
-// A show is a single occurrence/broadcast — live or pre-recorded. Recurring
-// programmes are just multiple rows sharing the same title; there's no
-// separate "series" entity or recurrence rule, and no "episodes" table —
-// every airing (ad-hoc live or scheduled) is one row here.
+// A show is a single occurrence/broadcast — live or pre-recorded; there's no
+// "episodes" table — every airing (ad-hoc live or scheduled) is one row here.
+// Recurring shows (weekly/monthly) are still one row per occurrence — rows
+// sharing a `seriesId` belong to the same recurring show, with future rows
+// materialized ahead of time by `src/lib/server/series.ts`.
 export const shows = pgTable('shows', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
@@ -81,6 +83,9 @@ export const shows = pgTable('shows', {
   imageUrl: text('image_url'),
   broadcastAt: timestamp('broadcast_at').notNull(),
   durationSeconds: integer('duration_seconds'),
+  recurrence: showRecurrenceEnum('recurrence').notNull().default('once'),
+  // Id of the root occurrence for a recurring show; null for one-off shows.
+  seriesId: integer('series_id'),
   // Set once the broadcast has aired and been archived for Listen Back.
   audioUrl: text('audio_url'),
   streamKey: text('stream_key').unique(),
@@ -131,4 +136,5 @@ export type Show = typeof shows.$inferSelect
 export type SavedShow = typeof savedShows.$inferSelect
 export type ChatMessage = typeof chatMessages.$inferSelect
 export type UserRole = typeof userRoleEnum.enumValues[number]
+export type ShowRecurrence = typeof showRecurrenceEnum.enumValues[number]
 export type SiteSetting = typeof siteSettings.$inferSelect

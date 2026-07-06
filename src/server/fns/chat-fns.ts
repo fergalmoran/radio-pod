@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 type SendMessageInput = {
@@ -8,6 +8,10 @@ type SendMessageInput = {
   gifUrl?: string
   gifTitle?: string
   replyToId?: number
+}
+
+type DeleteMessageInput = {
+  id: number
 }
 
 export const getChatMessages = createServerFn({ method: 'GET' }).handler(async () => {
@@ -59,6 +63,26 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
       gifTitle: data.gifTitle || null,
       replyToId: data.replyToId ?? null,
     })
+  })
+
+export const deleteChatMessage = createServerFn({ method: 'POST' })
+  .validator((data: unknown) => data as DeleteMessageInput)
+  .handler(async ({ data }) => {
+    const { auth } = await import('@/lib/auth')
+    const session = await auth.api.getSession({ headers: await getRequestHeaders() })
+    if (!session) throw new Error('Unauthorized')
+
+    const isAdmin = (session.user as { role?: string }).role === 'admin'
+
+    const { db } = await import('@/db')
+    const { chatMessages } = await import('@/db/schema')
+    await db
+      .delete(chatMessages)
+      .where(
+        isAdmin
+          ? eq(chatMessages.id, data.id)
+          : and(eq(chatMessages.id, data.id), eq(chatMessages.userId, session.user.id)),
+      )
   })
 
 export const getChatUsers = createServerFn({ method: 'GET' }).handler(async () => {

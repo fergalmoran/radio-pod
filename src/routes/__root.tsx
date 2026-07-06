@@ -80,15 +80,15 @@ const RootLayout = () => {
         <Sidebar isMuted={isMuted} onToggleMute={toggleMute} />
         <main
           className={cn(
-            'flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 space-y-4 sm:space-y-6',
-            isTheater && 'lg:overflow-hidden lg:flex lg:flex-col lg:min-h-0 lg:space-y-0'
+            'flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 flex flex-col min-h-0 space-y-4 sm:space-y-6',
+            isTheater && 'lg:overflow-hidden lg:space-y-0'
           )}
         >
           <div className="lg:hidden">
             <OnAirNow isMuted={isMuted} onToggleMute={toggleMute} />
           </div>
           {isTheater ? (
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-0">
               <div className="lg:flex-1 lg:min-w-0 lg:min-h-0">
                 <LiveHero
                   nowPlaying={nowPlaying}
@@ -99,7 +99,7 @@ const RootLayout = () => {
                   fillHeight
                 />
               </div>
-              <div className="h-[60vh] lg:h-auto lg:w-96 lg:shrink-0 lg:min-h-0">
+              <div className="flex-1 min-h-0 lg:flex-none lg:w-96 lg:shrink-0">
                 <Outlet />
               </div>
             </div>

@@ -28,7 +28,7 @@ const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MAX_VISIBLE = 3
 
 const formatTime = (date: Date | string) => {
-  return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(date).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
 }
 
 const isSameDay = (a: Date | string, b: Date) => {

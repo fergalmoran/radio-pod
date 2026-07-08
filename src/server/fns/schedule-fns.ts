@@ -8,7 +8,7 @@ import { findOverlapConflict } from '@/lib/server/overlap'
 import type { ShowRecurrence } from '@/db/schema'
 
 const formatDateTime = (date: Date) =>
-  date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+  date.toLocaleString('en-IE', { dateStyle: 'medium', timeStyle: 'short' })
 
 const formatConflictError = (conflict: { show: { title: string }; candidateStart: Date }) =>
   `The ${formatDateTime(conflict.candidateStart)} occurrence overlaps with "${conflict.show.title}"`

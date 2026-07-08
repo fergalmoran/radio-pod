@@ -13,6 +13,7 @@ type PlayerBarProps = {
 export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isReady, setIsReady] = useState(false)
   const [volume, setVolume] = useState(() => parseFloat((typeof localStorage !== 'undefined' ? localStorage.getItem('player-volume') : null) ?? '1'))
   const [isMuted, setIsMuted] = useState(false)
   const isLive = nowPlaying?.type === 'live'
@@ -30,19 +31,24 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
   useEffect(() => {
     const audio = audioRef.current
     const video = videoRef.current
+    setIsReady(false)
     if (isLive) {
       audio?.pause()
       if (video) {
         video.volume = volume
         video.muted = isMuted
-        video.play().catch(() => { })
+        video.play().catch(() => { }).finally(() => setIsReady(true))
+      } else {
+        setIsReady(true)
       }
     } else {
       video?.pause()
       if (audio) {
         audio.volume = volume
         audio.muted = isMuted
-        audio.play().catch(() => { })
+        audio.play().catch(() => { }).finally(() => setIsReady(true))
+      } else {
+        setIsReady(true)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,6 +73,7 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
   const activeMedia = () => (isLive ? videoRef.current : audioRef.current)
 
   const togglePlay = () => {
+    if (!isReady) return
     const media = activeMedia()
     if (!media) return
     if (media.paused) {
@@ -142,8 +149,10 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
           <Button variant="ghost" size="icon" aria-label="Previous" disabled className="hidden sm:inline-flex">
             <Icons.SkipBack className="h-4 w-4" />
           </Button>
-          <Button size="icon" aria-label="Play / Pause" onClick={togglePlay}>
-            {isPlaying ? (
+          <Button size="icon" aria-label="Play / Pause" onClick={togglePlay} disabled={!isReady}>
+            {!isReady ? (
+              <Icons.Loader className="h-4 w-4 animate-spin" />
+            ) : isPlaying ? (
               <Icons.Pause className="h-4 w-4" />
             ) : (
               <Icons.Play className="h-4 w-4" />

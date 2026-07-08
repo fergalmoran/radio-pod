@@ -24,7 +24,7 @@ import { endLive } from '@/server/fns/live-fns'
 import { Image } from '../images/image'
 
 const fmtTime = (epochMs: number): string => {
-  return new Date(epochMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return new Date(epochMs).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
 }
 
 type OnAirNowProps = {

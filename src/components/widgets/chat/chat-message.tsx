@@ -42,7 +42,7 @@ const timeLabel = (date: Date | string) => {
   const diff = Date.now() - d.getTime()
   if (diff < 60_000) return 'just now'
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
 }
 
 type Props = {

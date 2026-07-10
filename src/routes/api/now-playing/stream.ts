@@ -31,7 +31,6 @@ export const Route = createFileRoute('/api/now-playing/stream')({
           headers: {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
             'X-Accel-Buffering': 'no',
           },
         })

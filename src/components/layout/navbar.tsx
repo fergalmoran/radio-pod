@@ -20,6 +20,7 @@ import { Icons } from '@/components/icons'
 import { getRole, canSchedule } from '@/lib/roles'
 import { useSiteSettings } from '@/lib/use-site-settings'
 import { versionCheckQueryOptions } from '@/lib/queries'
+import type { NowPlayingState } from '@/lib/use-now-playing'
 
 const NAV_LINK_CLASS =
   'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors'
@@ -68,7 +69,11 @@ const NavLinks = ({ showSaved, onNavigate }: NavLinksProps) => (
   </>
 )
 
-export const Navbar = () => {
+type NavbarProps = {
+  nowPlaying: NowPlayingState | null
+}
+
+export const Navbar = ({ nowPlaying }: NavbarProps) => {
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
   const navigate = useNavigate()
@@ -111,7 +116,7 @@ export const Navbar = () => {
           )}
           {session?.user && canSchedule(role) && (
             <div className="hidden md:block">
-              <GoLiveDialog role={role} userId={session.user.id} />
+              <GoLiveDialog role={role} userId={session.user.id} nowPlaying={nowPlaying} />
             </div>
           )}
           <ThemeToggle />

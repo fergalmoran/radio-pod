@@ -26,7 +26,7 @@ import { useHlsVideo } from '@/lib/use-hls-video'
 import { useRadioAudio } from '@/lib/use-radio-audio'
 import { cn } from '@/lib/utils'
 
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
+const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var resolved=(stored==='light'||stored==='dark')?stored:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`
 
 interface RouterContext {
   queryClient: QueryClient
@@ -65,7 +65,7 @@ const RootLayout = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const isLive = nowPlaying?.type === 'live'
   const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
-  const { audioRef, isMuted, toggleMute, streamUrl } = useRadioAudio(videoRef, isLive)
+  const { audioRef, isPlaying, togglePlay, streamUrl } = useRadioAudio(videoRef, isLive)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // On the home page while live, pair the video with chat side-by-side and fit
   // both to the viewport at lg+ instead of stacking them (which pushed chat
@@ -77,7 +77,7 @@ const RootLayout = () => {
       <Navbar />
       <audio ref={audioRef} src={streamUrl} />
       <div className="flex flex-1 min-h-0">
-        <Sidebar isMuted={isMuted} onToggleMute={toggleMute} />
+        <Sidebar isPlaying={isPlaying} onTogglePlay={togglePlay} />
         <main
           className={cn(
             'flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 flex flex-col min-h-0 space-y-4 sm:space-y-6',
@@ -85,7 +85,7 @@ const RootLayout = () => {
           )}
         >
           <div className="lg:hidden">
-            <OnAirNow isMuted={isMuted} onToggleMute={toggleMute} />
+            <OnAirNow isPlaying={isPlaying} onTogglePlay={togglePlay} />
           </div>
           {isTheater ? (
             <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-0">

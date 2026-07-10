@@ -12,7 +12,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
+import { Separator } from '@/components/ui/separator'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { LiveClock } from '@/components/layout/live-clock'
 import { GoLiveDialog } from '@/components/widgets/go-live-dialog'
 import { Icons } from '@/components/icons'
 import { getRole, canSchedule } from '@/lib/roles'
@@ -100,7 +102,13 @@ export const Navbar = () => {
           <NavLinks showSaved={!!session?.user} />
         </nav>
 
-        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          {role === 'admin' && (
+            <>
+              <LiveClock />
+              <Separator orientation="vertical" className="h-6 hidden lg:block" />
+            </>
+          )}
           {session?.user && canSchedule(role) && (
             <div className="hidden md:block">
               <GoLiveDialog role={role} userId={session.user.id} />

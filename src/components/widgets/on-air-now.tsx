@@ -28,11 +28,11 @@ const fmtTime = (epochMs: number): string => {
 }
 
 type OnAirNowProps = {
-  isMuted?: boolean
-  onToggleMute?: () => void
+  isPlaying?: boolean
+  onTogglePlay?: () => void
 }
 
-export const OnAirNow = ({ isMuted, onToggleMute }: OnAirNowProps) => {
+export const OnAirNow = ({ isPlaying, onTogglePlay }: OnAirNowProps) => {
   const nowPlaying = useNowPlaying()
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
@@ -73,128 +73,125 @@ export const OnAirNow = ({ isMuted, onToggleMute }: OnAirNowProps) => {
   const isOwner = session?.user.id !== undefined && session.user.id === nowPlaying.hostUserId
 
   return (
-    <div className="rounded-lg border bg-card px-3 py-2.5 flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {isLive ? 'Live' : isEpisode ? 'On Air' : 'Now Playing'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+    <div className="rounded-lg border bg-card overflow-hidden flex">
+      {!isLive && onTogglePlay && (
+        <button
+          type="button"
+          onClick={onTogglePlay}
+          className="flex h-16 w-16 shrink-0 self-center mx-2 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-95"
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? <Icons.Pause className="h-6 w-6" /> : <Icons.Play className="h-6 w-6" />}
+        </button>
+      )}
+
+      <div className="flex flex-col gap-2 min-w-0 flex-1 px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+              {isLive ? 'Live' : isEpisode ? 'On Air' : 'Now Playing'}
+            </span>
+          </div>
           {hasTiming && (
-            <span className="text-[10px] text-muted-foreground tabular-nums">
+            <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
               {fmtTime(nowPlaying.startsAt!)} – {fmtTime(nowPlaying.endsAt!)}
             </span>
           )}
-          {!isLive && onToggleMute && (
-            <button
-              type="button"
-              onClick={onToggleMute}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted ? (
-                <Icons.VolumeX className="h-3.5 w-3.5" />
-              ) : (
-                <Icons.Volume2 className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
         </div>
-      </div>
 
-      {/* Track row */}
-      <div className="flex items-center gap-2.5">
-        {nowPlaying.imageUrl ? (
-          <Image
-            src={nowPlaying.imageUrl}
-            alt=""
-            className="h-10 w-10 rounded-md object-cover shrink-0"
-          />
-        ) : (
-          <div className={cn(
-            'h-10 w-10 rounded-md flex items-center justify-center shrink-0',
-            isEpisode || isLive ? 'bg-primary/10' : 'bg-muted',
-          )}>
-            <Icons.Radio className="h-5 w-5 text-muted-foreground/50" />
+        {/* Track row */}
+        <div className="flex items-center gap-2.5">
+          {nowPlaying.imageUrl ? (
+            <Image
+              src={nowPlaying.imageUrl}
+              alt=""
+              className="h-10 w-10 rounded-md object-cover shrink-0"
+            />
+          ) : (
+            <div className={cn(
+              'h-10 w-10 rounded-md flex items-center justify-center shrink-0',
+              isEpisode || isLive ? 'bg-primary/10' : 'bg-muted',
+            )}>
+              <Icons.Radio className="h-5 w-5 text-muted-foreground/50" />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-sm font-medium leading-snug line-clamp-2 cursor-default">
+                  {nowPlaying.title}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>{nowPlaying.title}</TooltipContent>
+            </Tooltip>
           </div>
+        </div>
+
+        {isAdmin && isEpisode && (
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full">
+                <Icons.Square className="h-3.5 w-3.5" />
+                Stop Show
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Stop the current show?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will immediately cut "{nowPlaying.title}" and fall back to station rotation. This can't be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={stopMutation.isPending}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={stopMutation.isPending}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    stopMutation.mutate()
+                  }}
+                >
+                  {stopMutation.isPending ? 'Stopping…' : 'Stop Show'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
 
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p className="text-sm font-medium leading-snug line-clamp-2 cursor-default">
-                {nowPlaying.title}
-              </p>
-            </TooltipTrigger>
-            <TooltipContent>{nowPlaying.title}</TooltipContent>
-          </Tooltip>
-        </div>
+        {isLive && canEndLive(role, isOwner) && (
+          <AlertDialog open={endLiveConfirmOpen} onOpenChange={setEndLiveConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full">
+                <Icons.Square className="h-3.5 w-3.5" />
+                End Live
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>End the live stream?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will end "{nowPlaying.title}" and fall back to station rotation. The host will need to stop
+                  streaming from OBS separately.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={endLiveMutation.isPending}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={endLiveMutation.isPending}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    endLiveMutation.mutate()
+                  }}
+                >
+                  {endLiveMutation.isPending ? 'Ending…' : 'End Live'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
-
-      {isAdmin && isEpisode && (
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full">
-              <Icons.Square className="h-3.5 w-3.5" />
-              Stop Show
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Stop the current show?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will immediately cut "{nowPlaying.title}" and fall back to station rotation. This can't be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={stopMutation.isPending}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={stopMutation.isPending}
-                onClick={(e) => {
-                  e.preventDefault()
-                  stopMutation.mutate()
-                }}
-              >
-                {stopMutation.isPending ? 'Stopping…' : 'Stop Show'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {isLive && canEndLive(role, isOwner) && (
-        <AlertDialog open={endLiveConfirmOpen} onOpenChange={setEndLiveConfirmOpen}>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="w-full">
-              <Icons.Square className="h-3.5 w-3.5" />
-              End Live
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>End the live stream?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will end "{nowPlaying.title}" and fall back to station rotation. The host will need to stop
-                streaming from OBS separately.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={endLiveMutation.isPending}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={endLiveMutation.isPending}
-                onClick={(e) => {
-                  e.preventDefault()
-                  endLiveMutation.mutate()
-                }}
-              >
-                {endLiveMutation.isPending ? 'Ending…' : 'End Live'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
     </div>
   )
 }

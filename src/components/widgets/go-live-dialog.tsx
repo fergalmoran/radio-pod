@@ -19,12 +19,13 @@ import { showsForUserQueryOptions, showLiveInfoQueryOptions } from '@/lib/querie
 import { goLive, endLive } from '@/server/fns/live-fns'
 import { createShow } from '@/server/fns/schedule-fns'
 import { canEndLive } from '@/lib/roles'
-import { useNowPlaying } from '@/lib/use-now-playing'
+import type { NowPlayingState } from '@/lib/use-now-playing'
 import type { UserRole } from '@/db/schema'
 
 type GoLiveDialogProps = {
   role: UserRole
   userId: string
+  nowPlaying: NowPlayingState | null
 }
 
 const NEW_SHOW_VALUE = '_new'
@@ -34,13 +35,12 @@ const copyToClipboard = (value: string) => {
   toast.success('Copied to clipboard')
 }
 
-export const GoLiveDialog = ({ role, userId }: GoLiveDialogProps) => {
+export const GoLiveDialog = ({ role, userId, nowPlaying }: GoLiveDialogProps) => {
   const [open, setOpen] = useState(false)
   const [selection, setSelection] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
   const queryClient = useQueryClient()
-  const nowPlaying = useNowPlaying()
 
   const showsQuery = useQuery({ ...showsForUserQueryOptions, enabled: open })
   const shows = showsQuery.data ?? []

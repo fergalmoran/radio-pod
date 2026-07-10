@@ -74,10 +74,10 @@ const RootLayout = () => {
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
-      <Navbar />
+      <Navbar nowPlaying={nowPlaying} />
       <audio ref={audioRef} src={streamUrl} />
       <div className="flex flex-1 min-h-0">
-        <Sidebar isPlaying={isPlaying} onTogglePlay={togglePlay} />
+        <Sidebar nowPlaying={nowPlaying} isPlaying={isPlaying} onTogglePlay={togglePlay} />
         <main
           className={cn(
             'flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 flex flex-col min-h-0 space-y-4 sm:space-y-6',
@@ -85,7 +85,7 @@ const RootLayout = () => {
           )}
         >
           <div className="lg:hidden">
-            <OnAirNow isPlaying={isPlaying} onTogglePlay={togglePlay} />
+            <OnAirNow nowPlaying={nowPlaying} isPlaying={isPlaying} onTogglePlay={togglePlay} />
           </div>
           {isTheater ? (
             <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-0">

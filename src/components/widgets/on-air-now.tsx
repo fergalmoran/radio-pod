@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useRouteContext } from '@tanstack/react-router'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useNowPlaying } from '@/lib/use-now-playing'
+import type { NowPlayingState } from '@/lib/use-now-playing'
 import { Icons } from '@/components/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
@@ -28,12 +28,12 @@ const fmtTime = (epochMs: number): string => {
 }
 
 type OnAirNowProps = {
+  nowPlaying: NowPlayingState | null
   isPlaying?: boolean
   onTogglePlay?: () => void
 }
 
-export const OnAirNow = ({ isPlaying, onTogglePlay }: OnAirNowProps) => {
-  const nowPlaying = useNowPlaying()
+export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay }: OnAirNowProps) => {
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
   const isAdmin = role === 'admin'

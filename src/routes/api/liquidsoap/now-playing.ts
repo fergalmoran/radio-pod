@@ -16,7 +16,11 @@ export const Route = createFileRoute('/api/liquidsoap/now-playing')({
         }
 
         const { title = '', artist = '', filename = '' } = body
-        const isEpisode = filename.includes('/mnt/audio/shows')
+        // Same env var scheduler.ts uses to push episode paths to Liquidsoap
+        // (LIQUIDSOAP_AUDIO_DIR=/mnt/shows in docker-compose.yml/.env) — must
+        // stay in sync with that, not a separately hardcoded path.
+        const audioDir = process.env.LIQUIDSOAP_AUDIO_DIR ?? '/mnt/audio/shows'
+        const isEpisode = filename.includes(audioDir)
 
         // Ignore dead-air on_track events that arrive during an episode window —
         // they're stale metadata from the track that was interrupted at start time.

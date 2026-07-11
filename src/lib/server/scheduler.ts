@@ -1,10 +1,10 @@
 import '@tanstack/react-start/server-only'
 import { join } from 'node:path'
 import net from 'node:net'
-import { gt, and, lte } from 'drizzle-orm'
+import { gt, and, lte, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { shows } from '@/db/schema'
-import { setNowPlaying, markEpisodeStart, clearEpisodeGuard, pollIcecastNowPlaying } from './now-playing'
+import { setNowPlaying, markEpisodeStart, markLiveStart, clearEpisodeGuard, pollIcecastNowPlaying } from './now-playing'
 import { getSiteSettings } from './site-settings'
 
 type ShowJob = {
@@ -50,8 +50,50 @@ export const ensureRunning = (): void => {
   })
 }
 
+// Called before resumeCurrentShow: a show can still be live in the DB
+// (liveStatus = 'live') after a server restart, since liveActive/state in
+// now-playing.ts are in-memory only. Without this, a restart mid-broadcast
+// drops back to the Icecast dead-air poll and the client's isLive flag
+// bounces once the real state catches up (via the next MediaMTX webhook),
+// tearing down and rebuilding the video/audio elements.
+const resumeLiveShow = async (): Promise<boolean> => {
+  const [show] = await db
+    .select({
+      id: shows.id,
+      title: shows.title,
+      hostName: shows.hostName,
+      imageUrl: shows.imageUrl,
+      hostUserId: shows.hostUserId,
+      streamKey: shows.streamKey,
+      liveStartedAt: shows.liveStartedAt,
+    })
+    .from(shows)
+    .where(eq(shows.liveStatus, 'live'))
+    .limit(1)
+
+  if (!show || !show.streamKey) return false
+
+  markLiveStart()
+  setNowPlaying(
+    {
+      type: 'live',
+      title: show.title,
+      artist: show.hostName ?? (await getSiteSettings()).name,
+      imageUrl: show.imageUrl ?? undefined,
+      showId: show.id,
+      hostUserId: show.hostUserId ?? undefined,
+      hlsUrl: `${process.env.MEDIAMTX_HLS_PUBLIC_URL}/live/${show.streamKey}/index.m3u8`,
+      startedAt: show.liveStartedAt?.getTime() ?? Date.now(),
+    },
+    `Resumed after server restart: show "${show.title}" (id ${show.id}) was already live (streamKey ${show.streamKey})`,
+  )
+  return true
+}
+
 const resumeCurrentShow = async (): Promise<void> => {
   try {
+    if (await resumeLiveShow()) return
+
     const now = new Date()
     const rows = await db
       .select({

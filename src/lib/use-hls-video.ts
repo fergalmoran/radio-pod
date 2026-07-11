@@ -50,6 +50,10 @@ export const useHlsVideo = (videoRef: RefObject<HTMLVideoElement | null>, src: s
             height: level.height,
             bitrate: level.bitrate,
           })))
+          // autoplay only fires reliably on a fresh <video> mount. When the
+          // element stays mounted and src just changes (e.g. one live show
+          // handing off straight to the next), nothing else resumes playback.
+          video.play().catch(() => { })
         })
         hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(src))
         hls.attachMedia(video)
@@ -66,6 +70,7 @@ export const useHlsVideo = (videoRef: RefObject<HTMLVideoElement | null>, src: s
 
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src
+      video.play().catch(() => { })
     }
   }, [videoRef, src])
 

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { setNowPlaying, isEpisodeExpected } from '@/lib/server/now-playing'
+import { setNowPlaying, isEpisodeExpected, recordEpisodeAudioConfirmed } from '@/lib/server/now-playing'
 import { ensureRunning } from '@/lib/server/scheduler'
 import { getSiteSettings } from '@/lib/server/site-settings'
 
@@ -22,9 +22,18 @@ export const Route = createFileRoute('/api/liquidsoap/now-playing')({
         const audioDir = process.env.LIQUIDSOAP_AUDIO_DIR ?? '/mnt/audio/shows'
         const isEpisode = filename.includes(audioDir)
 
-        // Ignore dead-air on_track events that arrive during an episode window —
-        // they're stale metadata from the track that was interrupted at start time.
-        if (!isEpisode && isEpisodeExpected()) {
+        // Record proof of an actual on-air switch regardless of the display
+        // guard below — the scheduler uses this to verify a push worked and
+        // retry if Liquidsoap silently never switched to it.
+        if (isEpisode) recordEpisodeAudioConfirmed(filename)
+
+        // Ignore on_track events that arrive during an episode window — the
+        // scheduler already set richer state (show title, image, start/end
+        // times) from the DB when the show started. That's authoritative;
+        // the episode audio file's own ID3 tags (or bare filename, when a
+        // file has none) are not a reliable replacement for it, and this
+        // event carries none of the timing/image fields anyway.
+        if (isEpisodeExpected()) {
           return new Response(null, { status: 204 })
         }
 

@@ -4,10 +4,10 @@ import {
   Scripts,
   createRootRouteWithContext,
   Outlet,
+  useRouteContext,
   useRouterState,
 } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
-import { getContext } from '@/integrations/tanstack-query/root-provider'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { LiveHero } from '@/components/widgets/live-hero'
@@ -33,9 +33,14 @@ interface RouterContext {
   session: Session | null
 }
 
-const { queryClient } = getContext()
-
 const RootDocument = ({ children }: { children: React.ReactNode }) => {
+  // Read from route context (set up fresh per request by getRouter()) rather
+  // than calling getContext() at module scope — a top-level call only runs
+  // once per server process and would freeze to whichever request first
+  // loaded this module, desyncing the provider's client from the one
+  // loaders actually populate for later requests.
+  const { queryClient } = useRouteContext({ from: '__root__' })
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -65,7 +70,7 @@ const RootLayout = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const isLive = nowPlaying?.type === 'live'
   const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
-  const { audioRef, isPlaying, togglePlay, streamUrl } = useRadioAudio(videoRef, isLive)
+  const { audioRef, isPlaying, togglePlay, streamUrl, volume, setVolume } = useRadioAudio(videoRef, nowPlaying)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // On the home page while live, pair the video with chat side-by-side and fit
   // both to the viewport at lg+ instead of stacking them (which pushed chat
@@ -77,7 +82,7 @@ const RootLayout = () => {
       <Navbar nowPlaying={nowPlaying} />
       <audio ref={audioRef} src={streamUrl} />
       <div className="flex flex-1 min-h-0">
-        <Sidebar nowPlaying={nowPlaying} isPlaying={isPlaying} onTogglePlay={togglePlay} />
+        <Sidebar nowPlaying={nowPlaying} isPlaying={isPlaying} onTogglePlay={togglePlay} volume={volume} onVolumeChange={setVolume} />
         <main
           className={cn(
             'flex-1 overflow-y-auto container mx-auto py-4 sm:py-6 px-3 sm:px-4 flex flex-col min-h-0 space-y-4 sm:space-y-6',
@@ -85,7 +90,7 @@ const RootLayout = () => {
           )}
         >
           <div className="lg:hidden">
-            <OnAirNow nowPlaying={nowPlaying} isPlaying={isPlaying} onTogglePlay={togglePlay} />
+            <OnAirNow nowPlaying={nowPlaying} isPlaying={isPlaying} onTogglePlay={togglePlay} volume={volume} onVolumeChange={setVolume} />
           </div>
           {isTheater ? (
             <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-0">

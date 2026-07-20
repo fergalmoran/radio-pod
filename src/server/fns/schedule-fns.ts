@@ -8,7 +8,7 @@ import { findOverlapConflict } from '@/lib/server/overlap'
 import type { ShowRecurrence } from '@/db/schema'
 
 const formatDateTime = (date: Date) =>
-  date.toLocaleString('en-IE', { dateStyle: 'medium', timeStyle: 'short' })
+  date.toLocaleString('en-IE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Dublin' })
 
 const formatConflictError = (conflict: { show: { title: string }; candidateStart: Date }) =>
   `The ${formatDateTime(conflict.candidateStart)} occurrence overlaps with "${conflict.show.title}"`
@@ -217,15 +217,24 @@ export const deleteShow = createServerFn({ method: 'POST' })
       throw new Error('Forbidden: not your show')
     }
 
+    const now = Date.now()
+    const durationSeconds = existing.durationSeconds ?? 3600
+    const isCurrentlyOnAir =
+      existing.liveStatus !== 'live' &&
+      existing.broadcastAt.getTime() <= now &&
+      now < existing.broadcastAt.getTime() + durationSeconds * 1000
+
     if (existing.seriesId !== null) {
       // Delete this occurrence and every future one in the series; earlier
       // (already-aired) occurrences stay in place for Listen Back.
       await deleteSeriesFrom(existing.seriesId, existing.broadcastAt)
+      if (isCurrentlyOnAir) await stopCurrentShow()
       return
     }
 
     cancelShow(data.id)
     await db.delete(shows).where(eq(shows.id, data.id))
+    if (isCurrentlyOnAir) await stopCurrentShow()
   })
 
 export const stopShow = createServerFn({ method: 'POST' }).handler(async () => {

@@ -26,23 +26,36 @@ type Props = {
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MAX_VISIBLE = 3
+const CALENDAR_TZ = 'Europe/Dublin'
 
 const formatTime = (date: Date | string) => {
-  return new Date(date).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
+  return new Date(date).toLocaleTimeString('en-IE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: CALENDAR_TZ,
+  })
 }
 
-const isSameDay = (a: Date | string, b: Date) => {
-  const da = new Date(a)
-  return (
-    da.getFullYear() === b.getFullYear() &&
-    da.getMonth() === b.getMonth() &&
-    da.getDate() === b.getDate()
-  )
-}
+// Buckets a show under the calendar day it falls on in station-local
+// (Dublin) time. Using Date's local getters here would bucket by whatever
+// timezone the runtime happens to be in — which can differ between the SSR
+// process and the browser — and shows broadcasting near midnight would land
+// on a different day cell on each side, causing a hydration mismatch.
+const dublinDateKeyFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: CALENDAR_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+const dublinDateKey = (date: Date | string) => dublinDateKeyFormatter.format(new Date(date))
+
+const cellDateKey = (year: number, monthNum: number, dayNum: number) =>
+  `${year}-${String(monthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
 
 export const MonthCalendar = ({ month, shows, canSchedule, onSchedule, onEdit }: Props) => {
   const [year, monthNum] = month.split('-').map(Number)
-  const today = new Date()
+  const todayKey = dublinDateKey(new Date())
 
   const firstDay = new Date(year, monthNum - 1, 1)
   const daysInMonth = new Date(year, monthNum, 0).getDate()
@@ -55,10 +68,9 @@ export const MonthCalendar = ({ month, shows, canSchedule, onSchedule, onEdit }:
     const dayNum = i - startOffset + 1
     const date = new Date(year, monthNum - 1, dayNum)
     const isCurrentMonth = dayNum >= 1 && dayNum <= daysInMonth
-    const isToday = isCurrentMonth && isSameDay(today, date)
-    const dayShows = isCurrentMonth
-      ? shows.filter((s) => isSameDay(s.broadcastAt, date))
-      : []
+    const dayKey = isCurrentMonth ? cellDateKey(year, monthNum, dayNum) : null
+    const isToday = dayKey === todayKey
+    const dayShows = dayKey ? shows.filter((s) => dublinDateKey(s.broadcastAt) === dayKey) : []
     return { date, isCurrentMonth, isToday, dayShows }
   })
 

@@ -20,6 +20,20 @@ if [[ "${1:-}" == "--log" ]]; then
     logs -f icecast liquidsoap mediamtx
 fi
 
+if [[ "${1:-}" == "--restart" ]]; then
+  docker --context default compose \
+    -f docker-compose.yml \
+    -f docker-compose.dev.yml \
+    stop icecast liquidsoap mediamtx
+
+  docker --context default compose \
+    -f docker-compose.yml \
+    -f docker-compose.dev.yml \
+    up -d icecast liquidsoap mediamtx
+
+  exec docker --context default compose logs -f icecast liquidsoap mediamtx
+fi
+
 docker --context default compose \
   -f docker-compose.yml \
   -f docker-compose.dev.yml \

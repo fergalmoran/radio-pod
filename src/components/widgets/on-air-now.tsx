@@ -6,6 +6,7 @@ import type { NowPlayingState } from '@/lib/use-now-playing'
 import { Icons } from '@/components/icons'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,16 +25,22 @@ import { endLive } from '@/server/fns/live-fns'
 import { Image } from '../images/image'
 
 const fmtTime = (epochMs: number): string => {
-  return new Date(epochMs).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
+  return new Date(epochMs).toLocaleTimeString('en-IE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Dublin',
+  })
 }
 
 type OnAirNowProps = {
   nowPlaying: NowPlayingState | null
   isPlaying?: boolean
   onTogglePlay?: () => void
+  volume?: number
+  onVolumeChange?: (volume: number) => void
 }
 
-export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay }: OnAirNowProps) => {
+export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay, volume, onVolumeChange }: OnAirNowProps) => {
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
   const isAdmin = role === 'admin'
@@ -128,6 +135,31 @@ export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay }: OnAirNowProps)
             </Tooltip>
           </div>
         </div>
+
+        {onVolumeChange && volume !== undefined && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onVolumeChange(volume === 0 ? 1 : 0)}
+              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              aria-label={volume === 0 ? 'Unmute' : 'Mute'}
+            >
+              {volume === 0 ? (
+                <Icons.VolumeX className="h-3.5 w-3.5" />
+              ) : (
+                <Icons.Volume2 className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <Slider
+              value={[volume]}
+              min={0}
+              max={1}
+              step={0.01}
+              onValueChange={([next]) => onVolumeChange(next)}
+              aria-label="Volume"
+            />
+          </div>
+        )}
 
         {isAdmin && isEpisode && (
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

@@ -14,5 +14,6 @@
     "**/.symlinks": true,
     "**/.plugin_symlinks": true
   },
-  "workbench.colorTheme": "Catppuccin Mocha"
+  "workbench.colorTheme": "Catppuccin Macchiato",
+  "workbench.iconTheme": "catppuccin-macchiato",
 }

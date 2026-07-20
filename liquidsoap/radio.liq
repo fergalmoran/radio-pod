@@ -33,21 +33,30 @@ icecast_port = int_of_string(default=8000, environment.get("ICECAST_PORT", defau
 # Dead air: random shuffle of everything in the dead air directory
 deadair = playlist(mode="randomize", reload=300, deadair_dir)
 
-# Episode queue: web app does `episodes.push /path/to/file.mp3` via telnet
-episodes = request.queue(id="episodes")
+# Episode queue: web app does `episodes.push /path/to/file.mp3` via telnet.
+# Wrapped in buffer() because request.queue reports itself ready as soon as a
+# pushed request is *resolved* (file found + decodable), not once it can
+# actually deliver a frame — without this, fallback (which re-checks
+# readiness every frame) can switch to episodes and back to deadair in the
+# same tick, one-shot, before the queue ever produces real audio.
+episodes = buffer(id="episodes_buffered", buffer=1.0, request.queue(id="episodes"))
 
 # Play episodes when available, fall back to dead air when the queue empties
 radio = mksafe(fallback(track_sensitive=false, [episodes, deadair]))
 
-# Notify the web app when a new track starts so the UI can update
+# Notify the web app when a new track starts so the UI can update. Runs in a
+# separate thread so a slow response from the web app can never stall
+# Liquidsoap's scheduler at the moment a switch decision is being made.
 radio.on_track(fun(m) ->
-  begin
-    title = m["title"]
-    artist = m["artist"]
-    filename = m["filename"]
-    body = '{"title":"#{title}","artist":"#{artist}","filename":"#{filename}"}'
-    ignore(http.post(now_playing_url, headers=[("Content-Type", "application/json")], data=body))
-  end
+  thread.run(fun() ->
+    begin
+      title = m["title"]
+      artist = m["artist"]
+      filename = m["filename"]
+      body = '{"title":"#{title}","artist":"#{artist}","filename":"#{filename}"}'
+      ignore(http.post(now_playing_url, headers=[("Content-Type", "application/json")], data=body))
+    end
+  )
 )
 
 # Encode as MP3 128kbps and stream to Icecast

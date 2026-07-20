@@ -4,7 +4,7 @@ import net from 'node:net'
 import { gt, and, lte, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { shows } from '@/db/schema'
-import { setNowPlaying, markEpisodeStart, markLiveStart, clearEpisodeGuard, pollIcecastNowPlaying } from './now-playing'
+import { setNowPlaying, markEpisodeStart, markLiveStart, clearEpisodeGuard, pollIcecastNowPlaying, isEpisodeAudioConfirmed } from './now-playing'
 import { getSiteSettings } from './site-settings'
 
 type ShowJob = {
@@ -17,11 +17,31 @@ type ShowJob = {
   hostName: string | null
 }
 
-const jobs = new Map<number, ReturnType<typeof setTimeout>>()
-// Mirrors `jobs` but keeps the show details around for the /debug page —
-// timers alone can't say what's queued or when it's due.
-const jobMeta = new Map<number, { title: string; broadcastAt: Date }>()
-let initialized = false
+type SchedulerState = {
+  jobs: Map<number, ReturnType<typeof setTimeout>>
+  // Mirrors `jobs` but keeps the show details around for the /debug page —
+  // timers alone can't say what's queued or when it's due.
+  jobMeta: Map<number, { title: string; broadcastAt: Date }>
+  initialized: boolean
+}
+
+// Vite's dev-mode SSR re-evaluates this whole module on every hot reload,
+// which would otherwise reset `jobs`/`initialized` to empty/false while any
+// setTimeout callbacks already scheduled by the *previous* module instance
+// are still pending in the process (plain setTimeout calls aren't tied to a
+// module instance and don't get cancelled by a reload) — silently stacking
+// a duplicate timer for every still-upcoming show on top of the orphaned
+// one, every single reload. Persisting on globalThis survives reloads so
+// scheduleShow's own dedup (via cancelShow) can find and clear a show's
+// previous timer instead of piling new ones on top of it.
+const globalForScheduler = globalThis as unknown as { __radioSchedulerState?: SchedulerState }
+const schedulerState: SchedulerState = (globalForScheduler.__radioSchedulerState ??= {
+  jobs: new Map(),
+  jobMeta: new Map(),
+  initialized: false,
+})
+const jobs = schedulerState.jobs
+const jobMeta = schedulerState.jobMeta
 
 /** What's currently armed to fire — surfaced on /debug so "what's coming up
  *  and when" doesn't require reading server logs. */
@@ -38,8 +58,8 @@ const refreshSchedule = async (): Promise<void> => {
 }
 
 export const ensureRunning = (): void => {
-  if (initialized) return
-  initialized = true
+  if (schedulerState.initialized) return
+  schedulerState.initialized = true
   void refreshSchedule()
   setInterval(() => void refreshSchedule(), 24 * 60 * 60 * 1000)
   // Restore in-progress show state before the first Icecast poll so the
@@ -211,10 +231,35 @@ const onShowStart = async (show: ShowJob): Promise<void> => {
   const liquidsoap_dir = process.env.LIQUIDSOAP_AUDIO_DIR ?? '/mnt/audio/shows'
   const filePath = join(liquidsoap_dir, filename)
 
-  try {
-    await sendToLiquidsoap(`episodes.push ${filePath}`)
-  } catch (err) {
-    console.error('[scheduler] Failed to push show to Liquidsoap:', err)
+  void pushEpisodeUntilConfirmed(filePath)
+}
+
+// request.queue/fallback have shown an intermittent race where Liquidsoap
+// accepts and resolves a pushed request (logs it as "Prepared") but never
+// actually switches the stream to it — no error, just silently stuck on
+// dead air. Liquidsoap's own on_track webhook is the only proof a push
+// really took effect, so verify against that and retry if it didn't.
+const PUSH_MAX_ATTEMPTS = 3
+const PUSH_VERIFY_DELAY_MS = 4000
+
+const pushEpisodeUntilConfirmed = async (filePath: string): Promise<void> => {
+  for (let attempt = 1; attempt <= PUSH_MAX_ATTEMPTS; attempt++) {
+    const pushedAt = Date.now()
+    try {
+      await sendToLiquidsoap(`episodes.push ${filePath}`)
+    } catch (err) {
+      console.error(`[scheduler] Failed to push show to Liquidsoap (attempt ${attempt}/${PUSH_MAX_ATTEMPTS}):`, err)
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, PUSH_VERIFY_DELAY_MS))
+
+    if (isEpisodeAudioConfirmed(filePath, pushedAt)) return
+
+    const willRetry = attempt < PUSH_MAX_ATTEMPTS
+    console.error(
+      `[scheduler] Liquidsoap never confirmed switching to ${filePath} (attempt ${attempt}/${PUSH_MAX_ATTEMPTS})` +
+        (willRetry ? ' — retrying.' : ' — giving up.'),
+    )
   }
 }
 
@@ -231,10 +276,9 @@ const sendToLiquidsoap = (command: string): Promise<void> => {
     const port = parseInt(process.env.LIQUIDSOAP_PORT ?? '1234', 10)
     const client = net.createConnection({ host, port })
     client.once('connect', () => {
-      client.write(`${command}\n`)
-      client.end()
-      resolve()
+      client.write(`${command}\nquit\n`)
     })
+    client.once('close', resolve)
     client.once('error', reject)
   })
 }

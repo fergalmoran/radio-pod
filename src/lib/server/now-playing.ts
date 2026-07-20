@@ -81,6 +81,32 @@ export const clearLiveGuard = (): void => {
   liveActive = false
 }
 
+let confirmedEpisodeFilename: string | null = null
+let confirmedEpisodeAt = 0
+const basename = (path: string): string => path.split('/').pop() ?? path
+
+/** Called by the Liquidsoap on_track webhook whenever it reports actually
+ *  playing an episode audio file — proof the push really took effect on the
+ *  stream, not just that Liquidsoap accepted and resolved the request
+ *  (request.queue/fallback have shown an intermittent race where a resolved,
+ *  decodable request still never gets switched to). Lets the scheduler
+ *  verify a push worked and retry if it didn't. */
+export const recordEpisodeAudioConfirmed = (filename: string): void => {
+  confirmedEpisodeFilename = filename
+  confirmedEpisodeAt = Date.now()
+}
+
+/** True if `filePath` was confirmed on air at or after `sinceMs`. Compares
+ *  basenames since Liquidsoap's reported metadata path format isn't
+ *  guaranteed to match the exact string we pushed. */
+export const isEpisodeAudioConfirmed = (filePath: string, sinceMs: number): boolean => {
+  return (
+    confirmedEpisodeFilename !== null &&
+    basename(confirmedEpisodeFilename) === basename(filePath) &&
+    confirmedEpisodeAt >= sinceMs
+  )
+}
+
 export const addClient = (ctrl: ReadableStreamDefaultController<Uint8Array>): void => {
   clients.add(ctrl)
 }

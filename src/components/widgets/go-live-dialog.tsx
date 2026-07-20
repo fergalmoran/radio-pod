@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -26,6 +27,7 @@ type GoLiveDialogProps = {
   role: UserRole
   userId: string
   nowPlaying: NowPlayingState | null
+  onArmed: (show: { id: number; title: string }) => void
 }
 
 const NEW_SHOW_VALUE = '_new'
@@ -35,12 +37,13 @@ const copyToClipboard = (value: string) => {
   toast.success('Copied to clipboard')
 }
 
-export const GoLiveDialog = ({ role, userId, nowPlaying }: GoLiveDialogProps) => {
+export const GoLiveDialog = ({ role, userId, nowPlaying, onArmed }: GoLiveDialogProps) => {
   const [open, setOpen] = useState(false)
   const [selection, setSelection] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
 
   const showsQuery = useQuery({ ...showsForUserQueryOptions, enabled: open })
   const shows = showsQuery.data ?? []
@@ -71,6 +74,12 @@ export const GoLiveDialog = ({ role, userId, nowPlaying }: GoLiveDialogProps) =>
     mutationFn: (showId: number) => goLive({ data: { showId } }),
     onSuccess: (_data, showId) => {
       queryClient.invalidateQueries({ queryKey: ['live', showId] })
+      // The show is now armed for OBS — jump to the live page right away and
+      // flag it as pending so LiveHero can show a waiting placeholder, no
+      // matter where "Go Live" was opened from or whether this dialog stays open.
+      const title = shows.find((show) => show.id === showId)?.title ?? newTitle
+      onArmed({ id: showId, title })
+      navigate({ to: '/' })
     },
     onError: () => toast.error('Failed to start live stream'),
   })

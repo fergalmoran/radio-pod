@@ -22,6 +22,10 @@ export const users = pgTable('users', {
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
   role: userRoleEnum('role').notNull().default('user'),
+  // Immutable RTMP stream key for this user — generated lazily on first "Go
+  // Live" and reused for every show they host after that. Only regenerated
+  // if the user explicitly chooses to (not implemented yet).
+  streamKey: text('stream_key').unique(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
@@ -88,7 +92,6 @@ export const shows = pgTable('shows', {
   seriesId: integer('series_id'),
   // Set once the broadcast has aired and been archived for Listen Back.
   audioUrl: text('audio_url'),
-  streamKey: text('stream_key').unique(),
   liveStatus: showLiveStatusEnum('live_status').notNull().default('offline'),
   liveStartedAt: timestamp('live_started_at'),
   // Set when "Go Live" arms the show (liveStatus="starting"); MediaMTX's publish

@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import net from 'node:net'
 import { gt, and, lte, eq } from 'drizzle-orm'
 import { db } from '@/db'
-import { shows } from '@/db/schema'
+import { shows, users } from '@/db/schema'
 import { setNowPlaying, markEpisodeStart, markLiveStart, clearEpisodeGuard, pollIcecastNowPlaying, isEpisodeAudioConfirmed } from './now-playing'
 import { getSiteSettings } from './site-settings'
 
@@ -84,10 +84,11 @@ const resumeLiveShow = async (): Promise<boolean> => {
       hostName: shows.hostName,
       imageUrl: shows.imageUrl,
       hostUserId: shows.hostUserId,
-      streamKey: shows.streamKey,
+      streamKey: users.streamKey,
       liveStartedAt: shows.liveStartedAt,
     })
     .from(shows)
+    .leftJoin(users, eq(users.id, shows.hostUserId))
     .where(eq(shows.liveStatus, 'live'))
     .limit(1)
 

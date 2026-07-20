@@ -16,13 +16,28 @@ export const Route = createFileRoute('/api/live/webhook')({
         if (!streamKey) return new Response('Bad path', { status: 400 })
 
         const { db } = await import('@/db')
-        const { shows } = await import('@/db/schema')
-        const { eq } = await import('drizzle-orm')
+        const { shows, users } = await import('@/db/schema')
+        const { eq, and, desc } = await import('drizzle-orm')
         const { setNowPlaying, markLiveStart, clearLiveGuard, pollIcecastNowPlaying } =
           await import('@/lib/server/now-playing')
 
-        const [show] = await db.select().from(shows).where(eq(shows.streamKey, streamKey))
-        if (!show) return new Response('Unknown stream key', { status: 404 })
+        const [host] = await db.select().from(users).where(eq(users.streamKey, streamKey))
+        if (!host) return new Response('Unknown stream key', { status: 404 })
+
+        // The key identifies the host, not a specific show — resolve the show
+        // that's currently starting (for "ready") or live (for "notready").
+        const [show] = await db
+          .select()
+          .from(shows)
+          .where(
+            and(
+              eq(shows.hostUserId, host.id),
+              eq(shows.liveStatus, event === 'ready' ? 'starting' : 'live'),
+            ),
+          )
+          .orderBy(desc(event === 'ready' ? shows.liveArmedAt : shows.liveStartedAt))
+          .limit(1)
+        if (!show) return new Response('No matching show for this key', { status: 404 })
 
         if (event === 'ready') {
           const startedAt = Date.now()

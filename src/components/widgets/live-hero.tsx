@@ -11,12 +11,16 @@ type LiveHeroProps = {
   levels: QualityLevel[]
   currentLevel: number
   setLevel: (index: number) => void
+  // Set from the moment "Go Live" arms a show until OBS actually starts
+  // publishing (nowPlaying flips to 'live') — there's a real gap between those
+  // two where nothing else on the page would otherwise indicate anything is happening.
+  pendingShow?: { id: number; title: string } | null
   // At lg+, fill the height handed down by a theater-mode flex row instead of
   // the usual width-driven aspect-video box — see __root.tsx's isTheater layout.
   fillHeight?: boolean
 }
 
-export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel, fillHeight }: LiveHeroProps) => {
+export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel, pendingShow, fillHeight }: LiveHeroProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isBuffering, setIsBuffering] = useState(true)
   const isLive = nowPlaying?.type === 'live'
@@ -38,7 +42,22 @@ export const LiveHero = ({ nowPlaying, videoRef, levels, currentLevel, setLevel,
     }
   }, [videoRef, isLive])
 
-  if (!isLive) return null
+  if (!isLive) {
+    if (!pendingShow) return null
+    return (
+      <div className={cn('rounded-xl border bg-card overflow-hidden', fillHeight && 'lg:h-full')}>
+        <div
+          className={cn(
+            'relative w-full aspect-video bg-black flex flex-col items-center justify-center gap-2 text-white',
+            fillHeight && 'lg:aspect-auto lg:h-full',
+          )}
+        >
+          <Icons.Loader className="h-8 w-8 animate-spin" />
+          <span className="text-sm font-medium">Waiting for {pendingShow.title} to go live…</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={cn('rounded-xl border bg-card overflow-hidden', fillHeight && 'lg:h-full')}>

@@ -71,9 +71,10 @@ const NavLinks = ({ showSaved, onNavigate }: NavLinksProps) => (
 
 type NavbarProps = {
   nowPlaying: NowPlayingState | null
+  onArmed: (show: { id: number; title: string }) => void
 }
 
-export const Navbar = ({ nowPlaying }: NavbarProps) => {
+export const Navbar = ({ nowPlaying, onArmed }: NavbarProps) => {
   const { session } = useRouteContext({ from: '__root__' })
   const role = getRole(session)
   const navigate = useNavigate()
@@ -116,7 +117,7 @@ export const Navbar = ({ nowPlaying }: NavbarProps) => {
           )}
           {session?.user && canSchedule(role) && (
             <div className="hidden md:block">
-              <GoLiveDialog role={role} userId={session.user.id} nowPlaying={nowPlaying} />
+              <GoLiveDialog role={role} userId={session.user.id} nowPlaying={nowPlaying} onArmed={onArmed} />
             </div>
           )}
           <ThemeToggle />

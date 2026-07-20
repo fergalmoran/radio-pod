@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   HeadContent,
   Scripts,
@@ -72,6 +72,17 @@ const RootLayout = () => {
   const { levels, currentLevel, setLevel } = useHlsVideo(videoRef, isLive ? nowPlaying?.hlsUrl : undefined)
   const { audioRef, isPlaying, togglePlay, streamUrl, volume, setVolume } = useRadioAudio(videoRef, nowPlaying)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+
+  // Set the moment "Go Live" arms a show (server accepted it, OBS may connect
+  // any time after) so LiveHero can show a waiting placeholder immediately —
+  // there's otherwise a gap between arming and OBS actually publishing where
+  // nowPlaying hasn't changed at all and the page looks like nothing happened.
+  const [armedShow, setArmedShow] = useState<{ id: number; title: string } | null>(null)
+  useEffect(() => {
+    if (armedShow && nowPlaying?.type === 'live' && nowPlaying.showId === armedShow.id) {
+      setArmedShow(null)
+    }
+  }, [nowPlaying, armedShow])
   // On the home page while live, pair the video with chat side-by-side and fit
   // both to the viewport at lg+ instead of stacking them (which pushed chat
   // below the fold and forced scrolling to see the whole stream).
@@ -79,7 +90,7 @@ const RootLayout = () => {
 
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
-      <Navbar nowPlaying={nowPlaying} />
+      <Navbar nowPlaying={nowPlaying} onArmed={setArmedShow} />
       <audio ref={audioRef} src={streamUrl} />
       <div className="flex flex-1 min-h-0">
         <Sidebar nowPlaying={nowPlaying} isPlaying={isPlaying} onTogglePlay={togglePlay} volume={volume} onVolumeChange={setVolume} />
@@ -101,6 +112,7 @@ const RootLayout = () => {
                   levels={levels}
                   currentLevel={currentLevel}
                   setLevel={setLevel}
+                  pendingShow={armedShow}
                   fillHeight
                 />
               </div>
@@ -116,6 +128,7 @@ const RootLayout = () => {
                 levels={levels}
                 currentLevel={currentLevel}
                 setLevel={setLevel}
+                pendingShow={armedShow}
               />
               <Outlet />
             </>

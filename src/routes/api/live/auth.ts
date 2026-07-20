@@ -33,11 +33,21 @@ export const Route = createFileRoute('/api/live/auth')({
         if (!streamKey) return new Response('Bad path', { status: 400 })
 
         const { db } = await import('@/db')
-        const { shows } = await import('@/db/schema')
-        const { eq } = await import('drizzle-orm')
+        const { shows, users } = await import('@/db/schema')
+        const { eq, and, desc } = await import('drizzle-orm')
 
-        const [show] = await db.select().from(shows).where(eq(shows.streamKey, streamKey))
-        if (!show) return new Response('Unknown stream key', { status: 401 })
+        const [host] = await db.select().from(users).where(eq(users.streamKey, streamKey))
+        if (!host) return new Response('Unknown stream key', { status: 401 })
+
+        // The key identifies the host, not a specific show — find the show
+        // they most recently armed via "Go Live".
+        const [show] = await db
+          .select()
+          .from(shows)
+          .where(and(eq(shows.hostUserId, host.id), eq(shows.liveStatus, 'starting')))
+          .orderBy(desc(shows.liveArmedAt))
+          .limit(1)
+        if (!show) return new Response('No show armed for this key', { status: 401 })
 
         const armedRecently =
           show.liveStatus === 'starting' &&

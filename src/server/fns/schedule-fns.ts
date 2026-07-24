@@ -1,7 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { and, gte, gt, lt, asc, eq } from 'drizzle-orm'
-import { scheduleShow, cancelShow, stopCurrentShow } from '@/lib/server/scheduler'
+import { stopCurrentShow } from '@/lib/server/scheduler'
+import { upsertKaclShow, deleteKaclShow } from '@/lib/server/kacl-shows-client'
 import { materializeSeries, deleteSeriesFrom } from '@/lib/server/series'
 import { generateOccurrenceDates } from '@/lib/server/recurrence'
 import { findOverlapConflict } from '@/lib/server/overlap'
@@ -27,7 +28,7 @@ type CreateShowInput = {
   recurrence?: ShowRecurrence
 }
 
-type UpdateShowInput = CreateShowInput & { id: number }
+type UpdateShowInput = CreateShowInput & { id: string }
 
 export const getShowsForMonth = createServerFn({ method: 'GET' })
   .validator((data: unknown) => data as GetShowsInput)
@@ -97,18 +98,18 @@ export const createShow = createServerFn({ method: 'POST' })
       })
       .returning()
 
-    scheduleShow(show)
-
     if (show.recurrence !== 'once') {
       const [rooted] = await db
         .update(shows)
         .set({ seriesId: show.id })
         .where(eq(shows.id, show.id))
         .returning()
+      void upsertKaclShow(rooted)
       await materializeSeries(show.id)
       return rooted
     }
 
+    void upsertKaclShow(show)
     return show
   })
 
@@ -167,7 +168,7 @@ export const updateShow = createServerFn({ method: 'POST' })
       .where(eq(shows.id, data.id))
       .returning()
 
-    scheduleShow(show)
+    void upsertKaclShow(show)
 
     if (effectiveSeriesId !== null) {
       await materializeSeries(effectiveSeriesId)
@@ -198,7 +199,7 @@ export const getUpNext = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 export const deleteShow = createServerFn({ method: 'POST' })
-  .validator((data: unknown) => data as { id: number })
+  .validator((data: unknown) => data as { id: string })
   .handler(async ({ data }) => {
     const { auth } = await import('@/lib/auth')
     const { db } = await import('@/db')
@@ -217,24 +218,17 @@ export const deleteShow = createServerFn({ method: 'POST' })
       throw new Error('Forbidden: not your show')
     }
 
-    const now = Date.now()
-    const durationSeconds = existing.durationSeconds ?? 3600
-    const isCurrentlyOnAir =
-      existing.liveStatus !== 'live' &&
-      existing.broadcastAt.getTime() <= now &&
-      now < existing.broadcastAt.getTime() + durationSeconds * 1000
-
     if (existing.seriesId !== null) {
       // Delete this occurrence and every future one in the series; earlier
-      // (already-aired) occurrences stay in place for Listen Back.
+      // (already-aired) occurrences stay in place for Listen Back. kacl
+      // stops each one first if it's the one currently active, no need to
+      // separately check/call stopCurrentShow here.
       await deleteSeriesFrom(existing.seriesId, existing.broadcastAt)
-      if (isCurrentlyOnAir) await stopCurrentShow()
       return
     }
 
-    cancelShow(data.id)
     await db.delete(shows).where(eq(shows.id, data.id))
-    if (isCurrentlyOnAir) await stopCurrentShow()
+    void deleteKaclShow(data.id)
   })
 
 export const stopShow = createServerFn({ method: 'POST' }).handler(async () => {

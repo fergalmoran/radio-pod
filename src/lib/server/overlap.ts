@@ -19,7 +19,7 @@ export type OverlapConflict = { show: Show; candidateStart: Date }
  */
 export const findOverlapConflict = async (
   candidates: OverlapCandidate[],
-  options: { excludeShowId?: number; excludeSeriesId?: number | null } = {},
+  options: { excludeShowId?: string; excludeSeriesId?: string | null } = {},
 ): Promise<OverlapConflict | null> => {
   if (candidates.length === 0) return null
 

@@ -9,7 +9,7 @@ export type NowPlayingState = {
   startsAt?: number // epoch ms
   endsAt?: number   // epoch ms
   // live-only:
-  showId?: number
+  showId?: string
   hostUserId?: string
   hlsUrl?: string
   startedAt?: number // epoch ms
@@ -81,32 +81,6 @@ export const clearLiveGuard = (): void => {
   liveActive = false
 }
 
-let confirmedEpisodeFilename: string | null = null
-let confirmedEpisodeAt = 0
-const basename = (path: string): string => path.split('/').pop() ?? path
-
-/** Called by the Liquidsoap on_track webhook whenever it reports actually
- *  playing an episode audio file — proof the push really took effect on the
- *  stream, not just that Liquidsoap accepted and resolved the request
- *  (request.queue/fallback have shown an intermittent race where a resolved,
- *  decodable request still never gets switched to). Lets the scheduler
- *  verify a push worked and retry if it didn't. */
-export const recordEpisodeAudioConfirmed = (filename: string): void => {
-  confirmedEpisodeFilename = filename
-  confirmedEpisodeAt = Date.now()
-}
-
-/** True if `filePath` was confirmed on air at or after `sinceMs`. Compares
- *  basenames since Liquidsoap's reported metadata path format isn't
- *  guaranteed to match the exact string we pushed. */
-export const isEpisodeAudioConfirmed = (filePath: string, sinceMs: number): boolean => {
-  return (
-    confirmedEpisodeFilename !== null &&
-    basename(confirmedEpisodeFilename) === basename(filePath) &&
-    confirmedEpisodeAt >= sinceMs
-  )
-}
-
 export const addClient = (ctrl: ReadableStreamDefaultController<Uint8Array>): void => {
   clients.add(ctrl)
 }
@@ -124,20 +98,25 @@ export const pollKaclNowPlaying = async (): Promise<void> => {
   const { getPlayoutSnapshot } = await import('./kacl-client')
   const snapshot = await getPlayoutSnapshot()
   if (!snapshot || !snapshot.currentSource) return
-  // kacl reports source "show" for any active session's track, whether it's
-  // our pushed episode or (unused while radio-pod owns scheduling) one of
-  // kacl's own internally-scheduled shows. Our episodes are reported via the
-  // confirmed-episode webhook path (recordEpisodeAudioConfirmed) and the
-  // scheduler's own setNowPlaying call at broadcastAt — don't let a snapshot
-  // poll clobber that. sessionId is ours to check; source isn't.
-  if (snapshot.activeSessionId?.startsWith('episode:')) return
+  // kacl reports source "show" for any active session's track. A scheduled
+  // show's display is set directly from kacl's own playout.session.started
+  // webhook (see routes/api/kacl/webhook.ts) — don't let this poll clobber
+  // that. kacl's session-id format for its own scheduled shows is
+  // "show:{guid:N}" (PlayoutCoordinator.StartShowAsync).
+  if (snapshot.activeSessionId?.startsWith('show:')) return
 
   const { name } = await getSiteSettings()
   setNowPlaying(
     {
       type: 'dead-air',
-      title: snapshot.currentShowName ?? name,
-      artist: snapshot.activeArtist ?? name,
+      // currentShowName is null for dead-air/jingle rotation (there's no
+      // "show") — currentTrackTitle/currentTrackArtist are kacl's ID3-tag
+      // (or filename-fallback) read for the actual track. Using
+      // currentShowName here was the bug: every 15s this poll would clobber
+      // a good webhook-set title with the site name, since dead-air tracks
+      // never have a show name.
+      title: snapshot.currentTrackTitle ?? name,
+      artist: snapshot.currentTrackArtist ?? name,
     },
     `kacl playout snapshot poll (station rotation / dead air) — source "${snapshot.currentSource}"`,
   )

@@ -71,7 +71,7 @@ const NavLinks = ({ showSaved, onNavigate }: NavLinksProps) => (
 
 type NavbarProps = {
   nowPlaying: NowPlayingState | null
-  onArmed: (show: { id: number; title: string }) => void
+  onArmed: (show: { id: string; title: string }) => void
 }
 
 export const Navbar = ({ nowPlaying, onArmed }: NavbarProps) => {

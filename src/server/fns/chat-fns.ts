@@ -7,11 +7,11 @@ type SendMessageInput = {
   content?: string
   gifUrl?: string
   gifTitle?: string
-  replyToId?: number
+  replyToId?: string
 }
 
 type DeleteMessageInput = {
-  id: number
+  id: string
 }
 
 export const getChatMessages = createServerFn({ method: 'GET' }).handler(async () => {

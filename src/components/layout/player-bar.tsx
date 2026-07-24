@@ -76,11 +76,26 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
     if (!isReady) return
     const media = activeMedia()
     if (!media) return
-    if (media.paused) {
-      media.play().catch(() => { })
-    } else {
-      media.pause()
+    if (isLive) {
+      // The shared video preview is a real pausable element (mirrors
+      // VideoControls elsewhere on the same element) — pausing it is fine.
+      if (media.paused) {
+        media.play().catch(() => { })
+      } else {
+        media.pause()
+      }
+      return
     }
+    // Dead-air/episode audio: never pause — this is a live broadcast, not
+    // seekable on-demand content, so pausing would mean resuming into a
+    // stale position instead of what's actually on air now. Mute/unmute
+    // instead; the connection keeps running in the background so resuming
+    // is instant and always exactly current.
+    const next = !isPlaying
+    setIsPlaying(next)
+    setIsMuted(!next)
+    media.muted = !next
+    if (next && media.paused) media.play().catch(() => { })
   }
 
   const toggleMute = () => {
@@ -149,11 +164,11 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
           <Button variant="ghost" size="icon" aria-label="Previous" disabled className="hidden sm:inline-flex">
             <Icons.SkipBack className="h-4 w-4" />
           </Button>
-          <Button size="icon" aria-label="Play / Pause" onClick={togglePlay} disabled={!isReady}>
+          <Button size="icon" aria-label={isPlaying ? 'Stop' : 'Play'} onClick={togglePlay} disabled={!isReady}>
             {!isReady ? (
               <Icons.Loader className="h-4 w-4 animate-spin" />
             ) : isPlaying ? (
-              <Icons.Pause className="h-4 w-4" />
+              <Icons.Square className="h-4 w-4" />
             ) : (
               <Icons.Play className="h-4 w-4" />
             )}

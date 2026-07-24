@@ -30,7 +30,7 @@ import { createShow, updateShow, deleteShow } from '@/server/fns/schedule-fns'
 import type { ShowRecurrence } from '@/db/schema'
 
 type ShowOccurrence = {
-  id: number
+  id: string
   title: string
   description: string | null
   broadcastAt: Date | string
@@ -38,7 +38,7 @@ type ShowOccurrence = {
   imageUrl: string | null
   audioUrl: string | null
   recurrence: ShowRecurrence
-  seriesId: number | null
+  seriesId: string | null
 }
 
 const RECURRENCE_LABELS: Record<ShowRecurrence, string> = {

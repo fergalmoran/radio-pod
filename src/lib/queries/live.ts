@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query'
 import { getShowLiveInfo } from '@/server/fns/live-fns'
 
-export const showLiveInfoQueryOptions = (showId: number) =>
+export const showLiveInfoQueryOptions = (showId: string) =>
   queryOptions({
     queryKey: ['live', showId],
     queryFn: () => getShowLiveInfo({ data: { showId } }),

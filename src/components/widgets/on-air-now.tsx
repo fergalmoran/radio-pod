@@ -78,6 +78,13 @@ export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay, volume, onVolume
   const isEpisode = nowPlaying.type === 'episode'
   const hasTiming = nowPlaying.startsAt !== undefined && nowPlaying.endsAt !== undefined
   const isOwner = session?.user.id !== undefined && session.user.id === nowPlaying.hostUserId
+  // "Artist - Title" when they're actually distinct (dead-air: ID3 tag
+  // artist + track title; episode/live: host name + show title) — falls
+  // back to just the title when there's nothing more specific to add.
+  const displayTitle =
+    nowPlaying.artist && nowPlaying.artist !== nowPlaying.title
+      ? `${nowPlaying.artist} - ${nowPlaying.title}`
+      : nowPlaying.title
 
   return (
     <div className="rounded-lg border bg-card overflow-hidden flex">
@@ -86,9 +93,9 @@ export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay, volume, onVolume
           type="button"
           onClick={onTogglePlay}
           className="flex h-16 w-16 shrink-0 self-center mx-2 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-95"
-          aria-label={isPlaying ? 'Pause' : 'Play'}
+          aria-label={isPlaying ? 'Stop' : 'Play'}
         >
-          {isPlaying ? <Icons.Pause className="h-6 w-6" /> : <Icons.Play className="h-6 w-6" />}
+          {isPlaying ? <Icons.Square className="h-6 w-6" /> : <Icons.Play className="h-6 w-6" />}
         </button>
       )}
 
@@ -128,10 +135,10 @@ export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay, volume, onVolume
             <Tooltip>
               <TooltipTrigger asChild>
                 <p className="text-sm font-medium leading-snug line-clamp-2 cursor-default">
-                  {nowPlaying.title}
+                  {displayTitle}
                 </p>
               </TooltipTrigger>
-              <TooltipContent>{nowPlaying.title}</TooltipContent>
+              <TooltipContent>{displayTitle}</TooltipContent>
             </Tooltip>
           </div>
         </div>

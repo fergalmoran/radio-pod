@@ -14,13 +14,25 @@ export const getNowPlayingDebugInfo = createServerFn({ method: 'GET' }).handler(
     getEpisodeEndsAt,
     isLiveActive,
   } = await import('@/lib/server/now-playing')
-  const { getScheduledJobs } = await import('@/lib/server/scheduler')
+  const { kaclUrl, controlHeaders } = await import('@/lib/server/kacl-client')
 
   const session = await auth.api.getSession({ headers: await getRequestHeaders() })
   if (!session || getRole(session) !== 'admin') throw new Error('Unauthorized')
 
   const now = new Date()
   const { reason, setAt } = getNowPlayingDebug()
+
+  // What kacl actually has scheduled — the real source of truth now, so
+  // more useful here than the app's own belief about it.
+  const kaclShows = await fetch(`${kaclUrl()}/shows`, { headers: controlHeaders() })
+    .then((res) => (res.ok ? res.json() : []))
+    .catch(() => []) as Array<{
+      id: string
+      name: string
+      oneOffStartUtc: string | null
+      oneOffEndUtc: string | null
+      enabled: boolean
+    }>
 
   const [upcomingShows, liveOrArmedShows] = await Promise.all([
     db
@@ -58,7 +70,7 @@ export const getNowPlayingDebugInfo = createServerFn({ method: 'GET' }).handler(
       episodeEndsAt: getEpisodeEndsAt() || null,
       isLiveActive: isLiveActive(),
     },
-    scheduledJobs: getScheduledJobs(),
+    kaclShows,
     upcomingShows,
     liveOrArmedShows,
   }

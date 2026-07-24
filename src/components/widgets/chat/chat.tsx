@@ -30,7 +30,7 @@ export const Chat = () => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<MentionInputHandle>(null)
   const hasInitialScrolled = useRef(false)
-  const prevMessageIdsRef = useRef<Set<number>>(new Set())
+  const prevMessageIdsRef = useRef<Set<string>>(new Set())
   const [text, setText] = useState('')
   const [showGiphy, setShowGiphy] = useState(false)
   const [isNearBottom, setIsNearBottom] = useState(true)
@@ -92,7 +92,7 @@ export const Chat = () => {
     setTimeout(() => inputRef.current?.focus(), 0)
   }
 
-  const handleScrollToMessage = (id: number) => {
+  const handleScrollToMessage = (id: string) => {
     const el = scrollRef.current?.querySelector(`[data-message-id="${id}"]`)
     el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }

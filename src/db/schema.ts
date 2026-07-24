@@ -5,7 +5,7 @@ import {
   timestamp,
   boolean,
   integer,
-  serial,
+  uuid,
   primaryKey,
 } from 'drizzle-orm/pg-core'
 
@@ -79,7 +79,7 @@ export const verifications = pgTable('verifications', {
 // sharing a `seriesId` belong to the same recurring show, with future rows
 // materialized ahead of time by `src/lib/server/series.ts`.
 export const shows = pgTable('shows', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),
   description: text('description'),
   hostName: text('host_name'),
@@ -89,7 +89,7 @@ export const shows = pgTable('shows', {
   durationSeconds: integer('duration_seconds'),
   recurrence: showRecurrenceEnum('recurrence').notNull().default('once'),
   // Id of the root occurrence for a recurring show; null for one-off shows.
-  seriesId: integer('series_id'),
+  seriesId: uuid('series_id'),
   // Set once the broadcast has aired and been archived for Listen Back.
   audioUrl: text('audio_url'),
   liveStatus: showLiveStatusEnum('live_status').notNull().default('offline'),
@@ -106,7 +106,7 @@ export const savedShows = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    showId: integer('show_id')
+    showId: uuid('show_id')
       .notNull()
       .references(() => shows.id, { onDelete: 'cascade' }),
     savedAt: timestamp('saved_at').defaultNow().notNull(),
@@ -115,11 +115,11 @@ export const savedShows = pgTable(
 )
 
 export const chatMessages = pgTable('chat_messages', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  replyToId: integer('reply_to_id'),
+  replyToId: uuid('reply_to_id'),
   content: text('content'),
   gifUrl: text('gif_url'),
   gifTitle: text('gif_title'),

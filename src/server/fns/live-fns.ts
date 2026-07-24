@@ -3,7 +3,7 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { eq } from 'drizzle-orm'
 
 type ShowIdInput = {
-  showId: number
+  showId: string
 }
 
 export const goLive = createServerFn({ method: 'POST' })

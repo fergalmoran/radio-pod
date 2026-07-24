@@ -14,7 +14,7 @@ type LiveHeroProps = {
   // Set from the moment "Go Live" arms a show until OBS actually starts
   // publishing (nowPlaying flips to 'live') — there's a real gap between those
   // two where nothing else on the page would otherwise indicate anything is happening.
-  pendingShow?: { id: number; title: string } | null
+  pendingShow?: { id: string; title: string } | null
   // At lg+, fill the height handed down by a theater-mode flex row instead of
   // the usual width-driven aspect-video box — see __root.tsx's isTheater layout.
   fillHeight?: boolean

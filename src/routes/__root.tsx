@@ -77,7 +77,7 @@ const RootLayout = () => {
   // any time after) so LiveHero can show a waiting placeholder immediately —
   // there's otherwise a gap between arming and OBS actually publishing where
   // nowPlaying hasn't changed at all and the page looks like nothing happened.
-  const [armedShow, setArmedShow] = useState<{ id: number; title: string } | null>(null)
+  const [armedShow, setArmedShow] = useState<{ id: string; title: string } | null>(null)
   useEffect(() => {
     if (armedShow && nowPlaying?.type === 'live' && nowPlaying.showId === armedShow.id) {
       setArmedShow(null)

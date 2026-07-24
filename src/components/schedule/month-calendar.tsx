@@ -3,7 +3,7 @@ import { Icons } from '../icons'
 import type { ShowRecurrence } from '@/db/schema'
 
 type ShowOccurrence = {
-  id: number
+  id: string
   title: string
   description: string | null
   audioUrl: string | null
@@ -13,7 +13,7 @@ type ShowOccurrence = {
   hostName: string | null
   hostUserId: string | null
   recurrence: ShowRecurrence
-  seriesId: number | null
+  seriesId: string | null
 }
 
 type Props = {

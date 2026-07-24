@@ -27,7 +27,7 @@ type GoLiveDialogProps = {
   role: UserRole
   userId: string
   nowPlaying: NowPlayingState | null
-  onArmed: (show: { id: number; title: string }) => void
+  onArmed: (show: { id: string; title: string }) => void
 }
 
 const NEW_SHOW_VALUE = '_new'
@@ -48,7 +48,7 @@ export const GoLiveDialog = ({ role, userId, nowPlaying, onArmed }: GoLiveDialog
   const showsQuery = useQuery({ ...showsForUserQueryOptions, enabled: open })
   const shows = showsQuery.data ?? []
   const isCreatingNew = selection === NEW_SHOW_VALUE
-  const selectedShowId = selection && !isCreatingNew ? Number(selection) : null
+  const selectedShowId = selection && !isCreatingNew ? selection : null
 
   useEffect(() => {
     if (!open) {
@@ -59,19 +59,19 @@ export const GoLiveDialog = ({ role, userId, nowPlaying, onArmed }: GoLiveDialog
     }
     if (selection) return
     if (shows.length === 1) {
-      setSelection(String(shows[0].id))
+      setSelection(shows[0].id)
     } else if (shows.length === 0) {
       setSelection(NEW_SHOW_VALUE)
     }
   }, [open, shows, selection])
 
   const liveInfoQuery = useQuery({
-    ...showLiveInfoQueryOptions(selectedShowId ?? -1),
+    ...showLiveInfoQueryOptions(selectedShowId ?? ''),
     enabled: selectedShowId != null,
   })
 
   const goLiveMutation = useMutation({
-    mutationFn: (showId: number) => goLive({ data: { showId } }),
+    mutationFn: (showId: string) => goLive({ data: { showId } }),
     onSuccess: (_data, showId) => {
       queryClient.invalidateQueries({ queryKey: ['live', showId] })
       // The show is now armed for OBS — jump to the live page right away and
@@ -104,13 +104,13 @@ export const GoLiveDialog = ({ role, userId, nowPlaying, onArmed }: GoLiveDialog
       }),
     onSuccess: (show) => {
       queryClient.invalidateQueries({ queryKey: ['shows'] })
-      setSelection(String(show.id))
+      setSelection(show.id)
     },
     onError: () => toast.error('Failed to create show'),
   })
 
   const endLiveMutation = useMutation({
-    mutationFn: (showId: number) => endLive({ data: { showId } }),
+    mutationFn: (showId: string) => endLive({ data: { showId } }),
     onSuccess: (_data, showId) => {
       toast.success('Live stream ended')
       queryClient.invalidateQueries({ queryKey: ['live', showId] })
@@ -163,7 +163,7 @@ export const GoLiveDialog = ({ role, userId, nowPlaying, onArmed }: GoLiveDialog
                   </SelectTrigger>
                   <SelectContent>
                     {shows.map((show) => (
-                      <SelectItem key={show.id} value={String(show.id)}>
+                      <SelectItem key={show.id} value={show.id}>
                         {show.title}
                       </SelectItem>
                     ))}

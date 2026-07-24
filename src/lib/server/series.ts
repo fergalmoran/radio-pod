@@ -3,10 +3,10 @@ import { eq, ne, and, gte, inArray } from 'drizzle-orm'
 import { db } from '@/db'
 import { shows } from '@/db/schema'
 import { generateOccurrenceDates } from './recurrence'
-import { scheduleShow, cancelShow } from './scheduler'
+import { upsertKaclShow, deleteKaclShow } from './kacl-shows-client'
 
 /** Tops up future occurrences for one recurring series, up to the horizon. */
-export const materializeSeries = async (seriesId: number): Promise<void> => {
+export const materializeSeries = async (seriesId: string): Promise<void> => {
   const rows = await db.select().from(shows).where(eq(shows.seriesId, seriesId))
   if (rows.length === 0) return
 
@@ -34,7 +34,7 @@ export const materializeSeries = async (seriesId: number): Promise<void> => {
   if (newRows.length === 0) return
 
   const created = await db.insert(shows).values(newRows).returning()
-  for (const show of created) scheduleShow(show)
+  for (const show of created) void upsertKaclShow(show)
 }
 
 /** Runs materializeSeries for every recurring series that has any row. */
@@ -44,7 +44,7 @@ export const materializeAllSeries = async (): Promise<void> => {
     .from(shows)
     .where(ne(shows.recurrence, 'once'))
 
-  const seriesIds = new Set(rows.map((r) => r.seriesId).filter((id): id is number => id !== null))
+  const seriesIds = new Set(rows.map((r) => r.seriesId).filter((id): id is string => id !== null))
   for (const seriesId of seriesIds) {
     await materializeSeries(seriesId)
   }
@@ -56,9 +56,9 @@ export const materializeAllSeries = async (): Promise<void> => {
  * which is updated separately rather than deleted).
  */
 export const deleteSeriesFrom = async (
-  seriesId: number,
+  seriesId: string,
   fromDate: Date,
-  excludeId?: number,
+  excludeId?: string,
 ): Promise<void> => {
   const toDelete = await db
     .select({ id: shows.id })
@@ -68,7 +68,6 @@ export const deleteSeriesFrom = async (
   const ids = toDelete.map((r) => r.id).filter((id) => id !== excludeId)
   if (ids.length === 0) return
 
-  for (const id of ids) cancelShow(id)
-
   await db.delete(shows).where(inArray(shows.id, ids))
+  for (const id of ids) void deleteKaclShow(id)
 }

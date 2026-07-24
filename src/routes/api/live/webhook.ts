@@ -18,7 +18,7 @@ export const Route = createFileRoute('/api/live/webhook')({
         const { db } = await import('@/db')
         const { shows, users } = await import('@/db/schema')
         const { eq, and, desc } = await import('drizzle-orm')
-        const { setNowPlaying, markLiveStart, clearLiveGuard, pollIcecastNowPlaying } =
+        const { setNowPlaying, markLiveStart, clearLiveGuard, pollKaclNowPlaying } =
           await import('@/lib/server/now-playing')
 
         const [host] = await db.select().from(users).where(eq(users.streamKey, streamKey))
@@ -63,7 +63,7 @@ export const Route = createFileRoute('/api/live/webhook')({
         } else if (event === 'notready') {
           await db.update(shows).set({ liveStatus: 'offline', liveArmedAt: null }).where(eq(shows.id, show.id))
           clearLiveGuard()
-          await pollIcecastNowPlaying()
+          await pollKaclNowPlaying()
         } else {
           return new Response('Unknown event', { status: 400 })
         }

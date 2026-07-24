@@ -8,7 +8,7 @@ export type NowPlayingState = {
   startsAt?: number // epoch ms
   endsAt?: number   // epoch ms
   // live-only:
-  showId?: number
+  showId?: string
   hostUserId?: string
   hlsUrl?: string
   startedAt?: number // epoch ms

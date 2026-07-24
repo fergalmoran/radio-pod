@@ -36,46 +36,22 @@ export const useRadioAudio = (videoRef: RefObject<HTMLVideoElement | null>, nowP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLive])
 
-  // The Icecast <audio> connection stays open continuously across dead-air/
-  // episode switches, but by the time it's been open a while the browser has
-  // usually pre-fetched several seconds of dead air ahead of playback
-  // position. Liquidsoap switches source on the wire almost immediately
-  // (radio.liq's buffer() pre-buffers for ~1s before cutting over), but the
-  // client won't audibly reach that point until it plays through whatever
-  // it already had buffered — several seconds of stale dead air. So we do
-  // still force a reconnect, just delayed past Liquidsoap's own switch
-  // window instead of racing it (an immediate reconnect lands *before* the
-  // switch and just picks up a fresh dose of dead air).
-  const lastEpisodeStartRef = useRef<number | undefined>(undefined)
-  const hasReceivedStateRef = useRef(false)
-  useEffect(() => {
-    if (nowPlaying === null) return
-    const currentEpisodeStart = nowPlaying.type === 'episode' ? nowPlaying.startsAt : undefined
+  // Deliberately no forced reconnect on dead-air/episode switches: kacl's
+  // crossfade makes the underlying MP3 stream genuinely gapless across a
+  // transition (verified via silencedetect spanning a real switch), so the
+  // <audio> element just keeps playing the one continuous connection straight
+  // through it. An earlier version force-reconnected a few seconds after
+  // every episode start to skip stale buffered audio — a workaround carried
+  // over from the old Liquidsoap setup — but it raced kacl's crossfade
+  // window and produced an audible cut/dead-air-restart/fade artifact of its
+  // own. Removed rather than re-tuned, since the thing it was working around
+  // (an abrupt source switch) no longer exists.
 
-    // Baseline off the first now-playing update of any kind (dead-air, live,
-    // or already-mid-episode), not the first *episode* one specifically —
-    // otherwise the very first dead-air-to-episode switch after page load
-    // (the common case) gets mistaken for the baseline and never reconnects.
-    if (!hasReceivedStateRef.current) {
-      hasReceivedStateRef.current = true
-      lastEpisodeStartRef.current = currentEpisodeStart
-      return
-    }
-    if (currentEpisodeStart === undefined) return
-    if (lastEpisodeStartRef.current === currentEpisodeStart) return
-    lastEpisodeStartRef.current = currentEpisodeStart
-
-    const timer = setTimeout(() => {
-      const audio = audioRef.current
-      if (!audio) return
-      const wasPlaying = isPlaying
-      audio.load()
-      if (wasPlaying) audio.play().catch(() => {})
-    }, 2000)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nowPlaying])
-
+  // Mute/unmute rather than actually pause — this is a live broadcast, not
+  // seekable on-demand content, so "pause and resume" would mean coming back
+  // to a stale position instead of what's actually on air. The element just
+  // keeps the connection running in the background; toggling back on is
+  // instant and always exactly current, no reconnect needed.
   const togglePlay = () => {
     const next = !isPlaying
     setIsPlaying(next)
@@ -84,8 +60,6 @@ export const useRadioAudio = (videoRef: RefObject<HTMLVideoElement | null>, nowP
     media.muted = !next
     if (next) {
       media.play().catch(() => {})
-    } else if (!isLive) {
-      media.pause()
     }
   }
 

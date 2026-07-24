@@ -3,7 +3,7 @@ import { Icons } from '@/components/icons'
 import { cn } from '@/lib/utils'
 
 export type ChatMessageData = {
-  id: number
+  id: string
   content: string | null
   gifUrl: string | null
   gifTitle: string | null
@@ -11,7 +11,7 @@ export type ChatMessageData = {
   userId: string
   userName: string
   userImage: string | null
-  replyToId: number | null
+  replyToId: string | null
   replyToContent: string | null
   replyToGifTitle: string | null
   replyToUserName: string | null
@@ -51,7 +51,7 @@ type Props = {
   currentUserId?: string
   isAdmin?: boolean
   onReply?: (message: ChatMessageData) => void
-  onScrollToMessage?: (id: number) => void
+  onScrollToMessage?: (id: string) => void
   onDelete?: (message: ChatMessageData) => void
 }
 

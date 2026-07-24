@@ -105,20 +105,24 @@ const DebugPage = () => {
         </div>
       </div>
 
-      {/* In-memory scheduled jobs */}
+      {/* What kacl actually has scheduled */}
       <div className="rounded-xl border bg-card p-4 space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Scheduled jobs (in-memory, this server process)
+          kacl scheduled shows
         </h2>
-        {data.scheduledJobs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing armed.</p>
+        {data.kaclShows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nothing scheduled (or kacl is unreachable).</p>
         ) : (
           <div className="space-y-1">
-            {data.scheduledJobs.map((job) => (
-              <div key={job.id} className="flex items-center justify-between text-sm border-b last:border-0 py-1.5">
-                <span>{job.title} <span className="text-muted-foreground">(id {job.id})</span></span>
+            {data.kaclShows.map((show) => (
+              <div key={show.id} className="flex items-center justify-between text-sm border-b last:border-0 py-1.5">
+                <span>
+                  {show.name} <span className="text-muted-foreground">(id {show.id}{show.enabled ? '' : ', disabled'})</span>
+                </span>
                 <span className="text-muted-foreground tabular-nums">
-                  {fmtTime(new Date(job.broadcastAt).getTime())} ({fmtRelative(new Date(job.broadcastAt).getTime(), now)})
+                  {show.oneOffStartUtc
+                    ? `${fmtTime(new Date(show.oneOffStartUtc).getTime())} (${fmtRelative(new Date(show.oneOffStartUtc).getTime(), now)})`
+                    : '—'}
                 </span>
               </div>
             ))}

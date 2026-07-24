@@ -115,32 +115,30 @@ export const removeClient = (ctrl: ReadableStreamDefaultController<Uint8Array>):
   clients.delete(ctrl)
 }
 
-type IcecastSource = { title?: string; artist?: string }
-type IcecastStatusJson = { icestats: { source?: IcecastSource | IcecastSource[] } }
-
-export const pollIcecastNowPlaying = async (): Promise<void> => {
+/** Polls kacl's playout snapshot — used to seed state on startup and as a
+ *  safety-net reconciliation, since the primary source of truth is now the
+ *  `playout.track.started` webhook (see routes/api/kacl/webhook.ts). */
+export const pollKaclNowPlaying = async (): Promise<void> => {
   if (isEpisodeExpected() || isLiveActive()) return
 
-  const host = process.env.ICECAST_HOST ?? 'localhost'
-  const port = process.env.ICECAST_PORT ?? '8000'
-  try {
-    const res = await fetch(`http://${host}:${port}/status-json.xsl`)
-    if (!res.ok) return
-    const data = (await res.json()) as IcecastStatusJson
-    const src = Array.isArray(data.icestats.source)
-      ? data.icestats.source[0]
-      : data.icestats.source
-    if (!src) return
-    const { name } = await getSiteSettings()
-    setNowPlaying(
-      {
-        type: 'dead-air',
-        title: src.title ?? name,
-        artist: src.artist ?? name,
-      },
-      `Icecast metadata poll (station rotation / dead air) — source title "${src.title ?? '(none)'}"`,
-    )
-  } catch {
-    // Icecast not reachable yet — no-op
-  }
+  const { getPlayoutSnapshot } = await import('./kacl-client')
+  const snapshot = await getPlayoutSnapshot()
+  if (!snapshot || !snapshot.currentSource) return
+  // kacl reports source "show" for any active session's track, whether it's
+  // our pushed episode or (unused while radio-pod owns scheduling) one of
+  // kacl's own internally-scheduled shows. Our episodes are reported via the
+  // confirmed-episode webhook path (recordEpisodeAudioConfirmed) and the
+  // scheduler's own setNowPlaying call at broadcastAt — don't let a snapshot
+  // poll clobber that. sessionId is ours to check; source isn't.
+  if (snapshot.activeSessionId?.startsWith('episode:')) return
+
+  const { name } = await getSiteSettings()
+  setNowPlaying(
+    {
+      type: 'dead-air',
+      title: snapshot.currentShowName ?? name,
+      artist: snapshot.activeArtist ?? name,
+    },
+    `kacl playout snapshot poll (station rotation / dead air) — source "${snapshot.currentSource}"`,
+  )
 }

@@ -59,7 +59,7 @@ export const endLive = createServerFn({ method: 'POST' })
     const { db } = await import('@/db')
     const { shows } = await import('@/db/schema')
     const { getRole, canEndLive } = await import('@/lib/roles')
-    const { clearLiveGuard, pollIcecastNowPlaying } = await import('@/lib/server/now-playing')
+    const { clearLiveGuard, pollKaclNowPlaying } = await import('@/lib/server/now-playing')
 
     const session = await auth.api.getSession({ headers: await getRequestHeaders() })
     if (!session) throw new Error('Unauthorized')
@@ -72,7 +72,7 @@ export const endLive = createServerFn({ method: 'POST' })
 
     await db.update(shows).set({ liveStatus: 'offline', liveArmedAt: null }).where(eq(shows.id, show.id))
     clearLiveGuard()
-    await pollIcecastNowPlaying()
+    await pollKaclNowPlaying()
   })
 
 export const getShowLiveInfo = createServerFn({ method: 'GET' })

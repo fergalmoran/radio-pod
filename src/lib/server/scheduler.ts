@@ -1,11 +1,11 @@
 import '@tanstack/react-start/server-only'
 import { join } from 'node:path'
-import net from 'node:net'
 import { gt, and, lte, eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { shows, users } from '@/db/schema'
-import { setNowPlaying, markEpisodeStart, markLiveStart, clearEpisodeGuard, pollIcecastNowPlaying, isEpisodeAudioConfirmed } from './now-playing'
+import { setNowPlaying, markEpisodeStart, markLiveStart, clearEpisodeGuard, pollKaclNowPlaying, isEpisodeAudioConfirmed } from './now-playing'
 import { getSiteSettings } from './site-settings'
+import { startExternalSession, stopActiveSession, ensureWebhookSubscription } from './kacl-client'
 
 type ShowJob = {
   id: number
@@ -60,13 +60,14 @@ const refreshSchedule = async (): Promise<void> => {
 export const ensureRunning = (): void => {
   if (schedulerState.initialized) return
   schedulerState.initialized = true
+  void ensureWebhookSubscription()
   void refreshSchedule()
   setInterval(() => void refreshSchedule(), 24 * 60 * 60 * 1000)
-  // Restore in-progress show state before the first Icecast poll so the
+  // Restore in-progress show state before the first kacl poll so the
   // guard window is armed and the dead-air poll doesn't overwrite it.
   void resumeCurrentShow().then(() => {
-    void pollIcecastNowPlaying()
-    setInterval(() => void pollIcecastNowPlaying(), 15_000)
+    void pollKaclNowPlaying()
+    setInterval(() => void pollKaclNowPlaying(), 15_000)
   })
 }
 
@@ -227,29 +228,43 @@ const onShowStart = async (show: ShowJob): Promise<void> => {
 
   if (!show.audioUrl) return
 
-  // audioUrl in DB is /api/media/audio/filename.mp3 — map to the path Liquidsoap sees
+  // audioUrl in DB is /api/media/audio/filename.mp3 — map to the real host
+  // path kacl reads from directly (kacl isn't containerized here, so this is
+  // the same AUDIO_DIR the app itself serves episode audio from).
   const filename = show.audioUrl.replace(/^\/api\/media\/audio\//, '')
-  const liquidsoap_dir = process.env.LIQUIDSOAP_AUDIO_DIR ?? '/mnt/audio/shows'
-  const filePath = join(liquidsoap_dir, filename)
+  const audioDir = process.env.AUDIO_DIR ?? '/mnt/audio/shows'
+  const filePath = join(audioDir, filename)
 
-  void pushEpisodeUntilConfirmed(filePath)
+  void pushEpisodeUntilConfirmed(show, filePath, endsAt)
 }
 
-// request.queue/fallback have shown an intermittent race where Liquidsoap
-// accepts and resolves a pushed request (logs it as "Prepared") but never
-// actually switches the stream to it — no error, just silently stuck on
-// dead air. Liquidsoap's own on_track webhook is the only proof a push
-// really took effect, so verify against that and retry if it didn't.
+// kacl's control API can accept a session start request without the playout
+// loop actually switching to it (transient errors are swallowed internally,
+// same class of race the old Liquidsoap request.queue push had). kacl's own
+// `playout.track.started` webhook (source "external") is the only proof a
+// push really took effect, so verify against that and retry if it didn't.
 const PUSH_MAX_ATTEMPTS = 3
 const PUSH_VERIFY_DELAY_MS = 4000
 
-const pushEpisodeUntilConfirmed = async (filePath: string): Promise<void> => {
+const pushEpisodeUntilConfirmed = async (show: ShowJob, filePath: string, endsAt: number): Promise<void> => {
+  const siteName = (await getSiteSettings()).name
+
   for (let attempt = 1; attempt <= PUSH_MAX_ATTEMPTS; attempt++) {
     const pushedAt = Date.now()
     try {
-      await sendToLiquidsoap(`episodes.push ${filePath}`)
+      const result = await startExternalSession({
+        externalSessionId: `episode:${show.id}`,
+        title: show.title,
+        artist: show.hostName ?? siteName,
+        sourcePath: filePath,
+        expectedEndsAtUtc: new Date(endsAt).toISOString(),
+        imageUrl: show.imageUrl ?? undefined,
+      })
+      if (!result.success) {
+        console.error(`[scheduler] kacl rejected episode start (attempt ${attempt}/${PUSH_MAX_ATTEMPTS}): ${result.message}`)
+      }
     } catch (err) {
-      console.error(`[scheduler] Failed to push show to Liquidsoap (attempt ${attempt}/${PUSH_MAX_ATTEMPTS}):`, err)
+      console.error(`[scheduler] Failed to push show to kacl (attempt ${attempt}/${PUSH_MAX_ATTEMPTS}):`, err)
     }
 
     await new Promise((resolve) => setTimeout(resolve, PUSH_VERIFY_DELAY_MS))
@@ -258,7 +273,7 @@ const pushEpisodeUntilConfirmed = async (filePath: string): Promise<void> => {
 
     const willRetry = attempt < PUSH_MAX_ATTEMPTS
     console.error(
-      `[scheduler] Liquidsoap never confirmed switching to ${filePath} (attempt ${attempt}/${PUSH_MAX_ATTEMPTS})` +
+      `[scheduler] kacl never confirmed switching to ${filePath} (attempt ${attempt}/${PUSH_MAX_ATTEMPTS})` +
         (willRetry ? ' — retrying.' : ' — giving up.'),
     )
   }
@@ -267,19 +282,6 @@ const pushEpisodeUntilConfirmed = async (filePath: string): Promise<void> => {
 /** Skips the currently playing show, falling back to dead air. */
 export const stopCurrentShow = async (): Promise<void> => {
   clearEpisodeGuard()
-  await sendToLiquidsoap('episodes.skip')
-  await pollIcecastNowPlaying()
-}
-
-const sendToLiquidsoap = (command: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const host = process.env.LIQUIDSOAP_HOST ?? 'localhost'
-    const port = parseInt(process.env.LIQUIDSOAP_PORT ?? '1234', 10)
-    const client = net.createConnection({ host, port })
-    client.once('connect', () => {
-      client.write(`${command}\nquit\n`)
-    })
-    client.once('close', resolve)
-    client.once('error', reject)
-  })
+  await stopActiveSession()
+  await pollKaclNowPlaying()
 }

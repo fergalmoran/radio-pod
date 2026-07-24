@@ -1,5 +1,10 @@
 DATABASE_URL=postgresql://user:password@localhost:5432/radio_pod
 
+KACL_URL=http://localhost:8080
+KACL_CONTROL_API_KEY=
+KACL_WEBHOOK_SECRET=
+APP_PUBLIC_URL=http://localhost:3000
+
 BETTER_AUTH_SECRET=change-me-to-a-random-secret-at-least-32-chars
 BETTER_AUTH_URL=http://localhost:3000
 

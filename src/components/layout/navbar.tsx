@@ -23,9 +23,9 @@ import { versionCheckQueryOptions } from '@/lib/queries'
 import type { NowPlayingState } from '@/lib/use-now-playing'
 
 const NAV_LINK_CLASS =
-  'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-accent transition-colors'
+  'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-muted transition-colors'
 const NAV_LINK_ACTIVE_CLASS =
-  'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-accent'
+  'flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md bg-secondary'
 
 type NavLinksProps = {
   showSaved: boolean

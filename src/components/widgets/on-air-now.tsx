@@ -131,15 +131,31 @@ export const OnAirNow = ({ nowPlaying, isPlaying, onTogglePlay, volume, onVolume
             </div>
           )}
 
-          <div className="flex flex-col gap-0.5 min-w-0">
+          <div className="flex items-start gap-1 min-w-0">
             <Tooltip>
               <TooltipTrigger asChild>
-                <p className="text-sm font-medium leading-snug line-clamp-2 cursor-default">
+                <p className="text-sm font-medium leading-snug line-clamp-2 cursor-default min-w-0">
                   {displayTitle}
                 </p>
               </TooltipTrigger>
               <TooltipContent>{displayTitle}</TooltipContent>
             </Tooltip>
+            {nowPlaying.type === 'dead-air' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(displayTitle)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-muted-foreground hover:text-foreground transition-colors shrink-0 mt-0.5"
+                    aria-label={`Search for ${displayTitle}`}
+                  >
+                    <Icons.Search className="h-3.5 w-3.5" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>Search for this track</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
 

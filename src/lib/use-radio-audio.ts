@@ -47,6 +47,35 @@ export const useRadioAudio = (videoRef: RefObject<HTMLVideoElement | null>, nowP
   // own. Removed rather than re-tuned, since the thing it was working around
   // (an abrupt source switch) no longer exists.
 
+  // The old reconnect above was, unintentionally, also covering for a
+  // separate problem it never gets credit for in the comment above: plain
+  // progressive `<audio src>` streaming has no "live edge" concept, so
+  // browsers buffer ahead (often tens of seconds, more on a fast local
+  // connection) before starting playback. kacl paces delivery to real time,
+  // so once playback starts, consumption exactly matches delivery — meaning
+  // whatever got buffered before playback began stays a fixed, permanent
+  // lag for the rest of the connection (this is what made "Now Playing"
+  // visibly run 20-30s ahead of the audible track). Fix that narrowly
+  // instead of reintroducing the reconnect: periodically snap forward to
+  // near the edge of what's already buffered client-side. That's a seek
+  // within already-downloaded data — no network request, so unlike a
+  // reconnect it can't race kacl's crossfade window.
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const MAX_LAG_SECONDS = 8
+    const TARGET_MARGIN_SECONDS = 2
+    const resyncToLiveEdge = () => {
+      if (audio.paused || audio.buffered.length === 0) return
+      const liveEdge = audio.buffered.end(audio.buffered.length - 1)
+      if (liveEdge - audio.currentTime > MAX_LAG_SECONDS) {
+        audio.currentTime = Math.max(0, liveEdge - TARGET_MARGIN_SECONDS)
+      }
+    }
+    audio.addEventListener('timeupdate', resyncToLiveEdge)
+    return () => audio.removeEventListener('timeupdate', resyncToLiveEdge)
+  }, [])
+
   // Mute/unmute rather than actually pause — this is a live broadcast, not
   // seekable on-demand content, so "pause and resume" would mean coming back
   // to a stale position instead of what's actually on air. The element just

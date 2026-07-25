@@ -39,7 +39,7 @@ services:
 
   # ── Web app ───────────────────────────────────────────────────────────────────
   web:
-    image: ghcr.io/fergalmoran/radio-pod:${APP_VERSION:-latest}
+    image: ghcr.io/radio-pod/radio-pod:${APP_VERSION:-latest}
     restart: unless-stopped
     env_file: .env.production
     environment:
@@ -60,7 +60,7 @@ services:
 
   # ── kacl (playout automation, encoding, and streaming) ───────────────────────
   kacl:
-    image: ghcr.io/fergalmoran/kacl:${KACL_VERSION:-latest}
+    image: ghcr.io/radio-pod/kacl:${KACL_VERSION:-latest}
     restart: unless-stopped
     environment:
       ASPNETCORE_URLS: http://+:8080

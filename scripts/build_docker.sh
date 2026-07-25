@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE="ghcr.io/fergalmoran/radio-pod"
+IMAGE="ghcr.io/radio-pod/radio-pod"
 TAG="${1:-latest}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

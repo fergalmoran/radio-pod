@@ -1,19 +1,9 @@
-# Dev overrides: run only `icecast`, `liquidsoap` and `mediamtx` alongside `bun run dev`
-# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up icecast liquidsoap mediamtx
+# Dev overrides: run only `mediamtx` alongside `bun run dev`.
+# kacl itself runs directly on the host in dev (not via Docker) — see the
+# comment above KACL_URL in .env — so there's nothing to override for it here.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up mediamtx
 
 services:
-  liquidsoap:
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      WEB_URL: http://host.docker.internal:3000
-      ICECAST_HOST: host.docker.internal   # connect via host to avoid inter-container network issues
-      ICECAST_PORT: "8001"                 # secondary port mapping that binds on all interfaces
-
-  icecast:
-    ports:
-      - "8001:8000"   # second binding on all interfaces; Liquidsoap reaches Icecast via host at this port
-
   mediamtx:
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -40,10 +30,10 @@ services:
       # tree, not just live/dev.fergl.ie, or the symlinks resolve to nothing.
       - /etc/letsencrypt:/etc/letsencrypt:ro
     ports:
-      # Second binding on all interfaces (compose files concatenate `ports:`
-      # lists rather than replacing them, so this must be a *different* host
-      # port than the base file's 127.0.0.1:8888:8888 — same pattern as
-      # icecast's 8001:8000 above). Lets the browser reach this via
-      # radio-pod.dev.fergl.ie, matching the wildcard dev cert's hostname —
-      # "localhost" isn't covered by *.dev.fergl.ie.
+      # Second binding on all interfaces, matching the base file's
+      # 127.0.0.1:8888:8888 (compose files concatenate `ports:` lists rather
+      # than replacing them, so this must be a *different* host port). Lets
+      # the browser reach this via radio-pod.dev.fergl.ie, matching the
+      # wildcard dev cert's hostname — "localhost" isn't covered by
+      # *.dev.fergl.ie.
       - "8889:8888"

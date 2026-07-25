@@ -1,20 +1,22 @@
 # Production compose — all services for VPS deployment.
 #
-# Required env vars (put in .env.production on the server):
+# Required env vars (put in .env.production on the server, and run compose
+# with `docker compose --env-file .env.production ...` so the ${...}
+# substitutions below also resolve, not just the container envs):
 #   DATABASE_URL
 #   BETTER_AUTH_SECRET
 #   BETTER_AUTH_URL
-#   ICECAST_SOURCE_PASSWORD
-#   ICECAST_ADMIN_PASSWORD
-#   ICECAST_HOSTNAME          (e.g. stream.surge.fm)
-#   ICECAST_ADMIN_EMAIL
+#   KACL_URL                  (e.g. http://kacl:8080)
+#   KACL_WEBHOOK_SECRET
+#   APP_PUBLIC_URL
 #   MEDIAMTX_WEBHOOK_SECRET
+#   KACL_CONTROL_API_KEY      (optional — see kacl service below)
 #
 # Media paths — set these to wherever your files live on the VPS, or leave
 # the defaults and create the directories under /opt/surge-fm/media/:
 #   MEDIA_SHOWS               path to show episode audio   (default: /opt/surge-fm/media/shows)
 #   MEDIA_IMAGES              path to show artwork         (default: /opt/surge-fm/media/images)
-#   MEDIA_DEADAIR             path to dead-air music       (default: /opt/surge-fm/media/deadair)
+#   MEDIA_DEADAIR              path to dead-air music       (default: /opt/surge-fm/media/deadair)
 #   MEDIA_JINGLES             path to jingle files         (default: /opt/surge-fm/media/jingles)
 
 services:
@@ -42,59 +44,45 @@ services:
     env_file: .env.production
     environment:
       NODE_ENV: production
-      LIQUIDSOAP_HOST: liquidsoap
-      LIQUIDSOAP_PORT: "1234"
-      LIQUIDSOAP_AUDIO_DIR: /mnt/shows
-      ICECAST_HOST: icecast
-      ICECAST_PORT: "8000"
       AUDIO_DIR: /mnt/shows
       IMAGE_DIR: /mnt/images
       MEDIAMTX_WEBHOOK_SECRET: ${MEDIAMTX_WEBHOOK_SECRET:?MEDIAMTX_WEBHOOK_SECRET is required}
     volumes:
       - ${MEDIA_SHOWS:-/opt/surge-fm/media/shows}:/mnt/shows
       - ${MEDIA_IMAGES:-/opt/surge-fm/media/images}:/mnt/images
-      - ${MEDIA_DEADAIR:-/opt/surge-fm/media/deadair}:/mnt/deadair:ro
-      - ${MEDIA_JINGLES:-/opt/surge-fm/media/jingles}:/mnt/jingles:ro
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
       db:
         condition: service_healthy
-      liquidsoap:
+      kacl:
         condition: service_started
 
-  # ── Liquidsoap ────────────────────────────────────────────────────────────────
-  liquidsoap:
-    image: savonet/liquidsoap:v2.3.0
+  # ── kacl (playout automation, encoding, and streaming) ───────────────────────
+  kacl:
+    image: ghcr.io/fergalmoran/kacl:${KACL_VERSION:-latest}
     restart: unless-stopped
-    command: liquidsoap /etc/liquidsoap/radio.liq
     environment:
-      WEB_URL: http://web:3000
+      ASPNETCORE_URLS: http://+:8080
+      Automation__DeadAirFolder: /app/media/dead-air
+      Automation__JingleFolder: /app/media/jingles
+      # Optional, not required — kacl allows unauthenticated control-API access
+      # when this is unset (see Program.cs), and the control API isn't
+      # publicly exposed anyway (127.0.0.1-bound port, reached internally by
+      # `web` over the compose network). Set it for defense in depth if you
+      # want, but don't block startup over it like DB_PASSWORD/MEDIAMTX_WEBHOOK_SECRET below.
+      Automation__Api__ControlApiKey: ${KACL_CONTROL_API_KEY:-}
     volumes:
-      - ./liquidsoap/radio.liq:/etc/liquidsoap/radio.liq:ro
+      # Same host paths (and same container path for shows) as the web
+      # service mounts above — the app hands kacl absolute track paths under
+      # /mnt/shows when it schedules a show, so kacl must see that directory
+      # at the identical path.
       - ${MEDIA_SHOWS:-/opt/surge-fm/media/shows}:/mnt/shows:ro
-      - ${MEDIA_DEADAIR:-/opt/surge-fm/media/deadair}:/mnt/deadair:ro
-      - ${MEDIA_JINGLES:-/opt/surge-fm/media/jingles}:/mnt/jingles:ro
+      - ${MEDIA_DEADAIR:-/opt/surge-fm/media/deadair}:/app/media/dead-air:ro
+      - ${MEDIA_JINGLES:-/opt/surge-fm/media/jingles}:/app/media/jingles:ro
+      - kacl_data:/app/data
     ports:
-      - "127.0.0.1:1234:1234"
-    depends_on:
-      - icecast
-
-  # ── Icecast ───────────────────────────────────────────────────────────────────
-  icecast:
-    image: infiniteproject/icecast
-    restart: unless-stopped
-    entrypoint: ["/bin/sh", "/tmp/icecast-entrypoint.sh"]
-    environment:
-      ICECAST_SOURCE_PASSWORD: ${ICECAST_SOURCE_PASSWORD:?ICECAST_SOURCE_PASSWORD is required}
-      ICECAST_ADMIN_PASSWORD: ${ICECAST_ADMIN_PASSWORD:?ICECAST_ADMIN_PASSWORD is required}
-      ICECAST_ADMIN_EMAIL: ${ICECAST_ADMIN_EMAIL:-admin@surge.fm}
-      ICECAST_HOSTNAME: ${ICECAST_HOSTNAME:-localhost}
-    volumes:
-      - ./icecast/icecast.xml.tpl:/tmp/icecast.xml.tpl:ro
-      - ./icecast/entrypoint.sh:/tmp/icecast-entrypoint.sh:ro
-    ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8080:8080"
 
   # ── MediaMTX (live video ingest) ─────────────────────────────────────────────
   mediamtx:
@@ -115,3 +103,4 @@ services:
 
 volumes:
   postgres_data:
+  kacl_data:

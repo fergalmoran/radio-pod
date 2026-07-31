@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
 import { Link } from '@tanstack/react-router'
 import { chatMessagesQueryOptions, chatUsersQueryOptions } from '@/lib/queries/chat'
+import { useChatStream } from '@/lib/use-chat-stream'
 import { deleteChatMessage, sendChatMessage } from '@/server/fns/chat-fns'
 import { Button } from '@/components/ui/button'
 import { Icons } from '@/components/icons'
@@ -26,7 +27,6 @@ const playPing = () => {
 
 export const Chat = () => {
   const { session } = useRouteContext({ from: '__root__' })
-  const queryClient = useQueryClient()
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<MentionInputHandle>(null)
   const hasInitialScrolled = useRef(false)
@@ -38,6 +38,7 @@ export const Chat = () => {
 
   const { data: messages = [] } = useQuery(chatMessagesQueryOptions)
   const { data: chatUsers = [] } = useQuery(chatUsersQueryOptions)
+  useChatStream()
   const currentUserName = session?.user.name
   const currentUserId = session?.user.id
   const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'admin'
@@ -55,15 +56,11 @@ export const Chat = () => {
     }
   }, [messages, currentUserName])
 
-  const sendMutation = useMutation({
-    mutationFn: sendChatMessage,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] }),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteChatMessage,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] }),
-  })
+  // Cache updates arrive via the chat SSE stream (useChatStream above), not
+  // from these mutations directly — the server broadcasts to every
+  // connected client, including the sender.
+  const sendMutation = useMutation({ mutationFn: sendChatMessage })
+  const deleteMutation = useMutation({ mutationFn: deleteChatMessage })
 
   useEffect(() => {
     const el = scrollRef.current

@@ -46,6 +46,37 @@ export const getChatMessages = createServerFn({ method: 'GET' }).handler(async (
   return rows.reverse()
 })
 
+const getChatMessageById = async (id: string) => {
+  const { db } = await import('@/db')
+  const { chatMessages, users } = await import('@/db/schema')
+
+  const replyMessages = alias(chatMessages, 'reply_msg')
+  const replyUsers = alias(users, 'reply_user')
+
+  const [row] = await db
+    .select({
+      id: chatMessages.id,
+      content: chatMessages.content,
+      gifUrl: chatMessages.gifUrl,
+      gifTitle: chatMessages.gifTitle,
+      createdAt: chatMessages.createdAt,
+      replyToId: chatMessages.replyToId,
+      userId: users.id,
+      userName: users.name,
+      userImage: users.image,
+      replyToContent: replyMessages.content,
+      replyToGifTitle: replyMessages.gifTitle,
+      replyToUserName: replyUsers.name,
+    })
+    .from(chatMessages)
+    .innerJoin(users, eq(chatMessages.userId, users.id))
+    .leftJoin(replyMessages, eq(chatMessages.replyToId, replyMessages.id))
+    .leftJoin(replyUsers, eq(replyMessages.userId, replyUsers.id))
+    .where(eq(chatMessages.id, id))
+
+  return row
+}
+
 export const sendChatMessage = createServerFn({ method: 'POST' })
   .validator((data: unknown) => data as SendMessageInput)
   .handler(async ({ data }) => {
@@ -56,13 +87,20 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
 
     const { db } = await import('@/db')
     const { chatMessages } = await import('@/db/schema')
-    await db.insert(chatMessages).values({
-      userId: session.user.id,
-      content: data.content?.trim() || null,
-      gifUrl: data.gifUrl || null,
-      gifTitle: data.gifTitle || null,
-      replyToId: data.replyToId ?? null,
-    })
+    const [inserted] = await db
+      .insert(chatMessages)
+      .values({
+        userId: session.user.id,
+        content: data.content?.trim() || null,
+        gifUrl: data.gifUrl || null,
+        gifTitle: data.gifTitle || null,
+        replyToId: data.replyToId ?? null,
+      })
+      .returning()
+
+    const message = await getChatMessageById(inserted.id)
+    const { broadcastChatEvent } = await import('@/lib/server/chat-hub')
+    broadcastChatEvent({ type: 'message', message })
   })
 
 export const deleteChatMessage = createServerFn({ method: 'POST' })
@@ -76,13 +114,19 @@ export const deleteChatMessage = createServerFn({ method: 'POST' })
 
     const { db } = await import('@/db')
     const { chatMessages } = await import('@/db/schema')
-    await db
+    const deleted = await db
       .delete(chatMessages)
       .where(
         isAdmin
           ? eq(chatMessages.id, data.id)
           : and(eq(chatMessages.id, data.id), eq(chatMessages.userId, session.user.id)),
       )
+      .returning()
+
+    if (deleted.length > 0) {
+      const { broadcastChatEvent } = await import('@/lib/server/chat-hub')
+      broadcastChatEvent({ type: 'delete', id: data.id })
+    }
   })
 
 export const getChatUsers = createServerFn({ method: 'GET' }).handler(async () => {

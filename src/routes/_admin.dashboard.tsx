@@ -6,6 +6,7 @@ import { adminUsersQueryOptions, mailSettingsQueryOptions, siteSettingsQueryOpti
 import { UsersTab } from '@/components/widgets/admin/users-tab'
 import { MailSettingsTab } from '@/components/widgets/admin/mail-settings-tab'
 import { SiteSettingsTab } from '@/components/widgets/admin/site-settings-tab'
+import { PlayoutTab } from '@/components/widgets/admin/playout-tab'
 
 const AdminDashboardPage = () => {
   return (
@@ -20,6 +21,7 @@ const AdminDashboardPage = () => {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="site">Site</TabsTrigger>
           <TabsTrigger value="mail">Mail</TabsTrigger>
+          <TabsTrigger value="playout">Playout</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -54,6 +56,10 @@ const AdminDashboardPage = () => {
           <Suspense fallback={<div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full max-w-lg rounded" />)}</div>}>
             <MailSettingsTab />
           </Suspense>
+        </TabsContent>
+
+        <TabsContent value="playout" className="pt-4">
+          <PlayoutTab />
         </TabsContent>
       </Tabs>
     </div>

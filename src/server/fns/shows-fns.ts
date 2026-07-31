@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { eq, desc } from 'drizzle-orm'
+import { and, eq, desc, isNotNull, lt } from 'drizzle-orm'
 
 export const getShows = createServerFn({ method: 'GET' }).handler(async () => {
   const { db } = await import('@/db')
@@ -28,6 +28,30 @@ export const getShows = createServerFn({ method: 'GET' }).handler(async () => {
     if (!byTitle.has(row.title)) byTitle.set(row.title, row)
   }
   return [...byTitle.values()].sort((a, b) => a.title.localeCompare(b.title))
+})
+
+// A show is "listen-back-able" once it's aired (broadcastAt in the past) and
+// has an archived recording (audioUrl) — audioUrl alone isn't enough since
+// hosts can upload a pre-recorded episode ahead of its scheduled broadcast.
+export const getFinishedShows = createServerFn({ method: 'GET' }).handler(async () => {
+  const { db } = await import('@/db')
+  const { shows } = await import('@/db/schema')
+
+  return db
+    .select({
+      id: shows.id,
+      title: shows.title,
+      description: shows.description,
+      hostName: shows.hostName,
+      hostUserId: shows.hostUserId,
+      imageUrl: shows.imageUrl,
+      audioUrl: shows.audioUrl,
+      broadcastAt: shows.broadcastAt,
+      durationSeconds: shows.durationSeconds,
+    })
+    .from(shows)
+    .where(and(isNotNull(shows.audioUrl), lt(shows.broadcastAt, new Date())))
+    .orderBy(desc(shows.broadcastAt))
 })
 
 export const getShowsForUser = createServerFn({ method: 'GET' }).handler(async () => {

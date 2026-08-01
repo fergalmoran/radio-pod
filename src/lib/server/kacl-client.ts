@@ -1,5 +1,4 @@
 import '@tanstack/react-start/server-only'
-import { createHmac, timingSafeEqual } from 'node:crypto'
 
 export const kaclUrl = (): string => process.env.KACL_URL ?? 'http://localhost:8080'
 
@@ -31,10 +30,21 @@ type KaclPlayoutSnapshot = {
   currentShowName: string | null
   currentTrackTitle: string | null
   currentTrackArtist: string | null
+  // "reported*" lags "current*" by kacl's crossfade duration — kacl only
+  // fills these in once a track is actually the sole thing on air, not the
+  // moment it starts crossfading in. Display/reconciliation should read
+  // these, not current* (see kacl PlayoutCoordinator.ReportTrackStartedAsync).
+  reportedSource: string | null
+  reportedTrackPath: string | null
+  reportedShowName: string | null
+  reportedTrackTitle: string | null
+  reportedTrackArtist: string | null
+  reportedTrackImageUrl: string | null
 }
 
 /** Public, unauthenticated snapshot of what kacl is currently playing — used
- *  to seed now-playing state on server startup, before the first webhook. */
+ *  to seed now-playing state on server startup and as a reconciliation
+ *  fallback for the PlayoutHub push connection (see playout-hub-client.ts). */
 export const getPlayoutSnapshot = async (): Promise<KaclPlayoutSnapshot | null> => {
   try {
     const res = await fetch(`${kaclUrl()}/playout/status`)
@@ -43,59 +53,4 @@ export const getPlayoutSnapshot = async (): Promise<KaclPlayoutSnapshot | null> 
   } catch {
     return null
   }
-}
-
-type WebhookSubscription = { id: string; targetUrl: string }
-
-/** Idempotently registers this app's webhook endpoint with kacl so it
- *  starts receiving playout.* events. Safe to call on every server start. */
-export const ensureWebhookSubscription = async (): Promise<void> => {
-  const targetUrl = `${process.env.APP_PUBLIC_URL ?? 'http://localhost:3000'}/api/kacl/webhook`
-  const secret = process.env.KACL_WEBHOOK_SECRET
-  if (!secret) {
-    console.warn('[kacl-client] KACL_WEBHOOK_SECRET not set — skipping webhook registration.')
-    return
-  }
-
-  try {
-    const listRes = await fetch(`${kaclUrl()}/webhooks`, { headers: controlHeaders() })
-    if (!listRes.ok) {
-      console.error(`[kacl-client] Failed to list kacl webhook subscriptions: HTTP ${listRes.status}`)
-      return
-    }
-    const subscriptions = (await listRes.json()) as WebhookSubscription[]
-    if (subscriptions.some((s) => s.targetUrl === targetUrl)) return
-
-    const createRes = await fetch(`${kaclUrl()}/webhooks`, {
-      method: 'POST',
-      headers: controlHeaders(),
-      body: JSON.stringify({
-        targetUrl,
-        eventTypes: ['*'],
-        signingSecret: secret,
-        enabled: true,
-      }),
-    })
-    if (!createRes.ok) {
-      console.error(`[kacl-client] Failed to register kacl webhook subscription: HTTP ${createRes.status}`)
-      return
-    }
-    console.log(`[kacl-client] Registered webhook subscription with kacl -> ${targetUrl}`)
-  } catch (err) {
-    console.error('[kacl-client] Could not reach kacl to register webhook subscription:', err)
-  }
-}
-
-/** Verifies kacl's `X-KACL-Signature: sha256=<hex>` header (HMAC-SHA256 over
- *  the raw request body, same scheme WebhookDeliveryWorker.cs signs with). */
-export const verifyKaclSignature = (rawBody: string, signatureHeader: string | null): boolean => {
-  const secret = process.env.KACL_WEBHOOK_SECRET
-  if (!secret || !signatureHeader) return false
-
-  const expected = `sha256=${createHmac('sha256', secret).update(rawBody).digest('hex')}`
-  const expectedBytes = Buffer.from(expected)
-  const providedBytes = Buffer.from(signatureHeader)
-  if (expectedBytes.length !== providedBytes.length) return false
-
-  return timingSafeEqual(expectedBytes, providedBytes)
 }

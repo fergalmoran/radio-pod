@@ -97,7 +97,7 @@ export const pollKaclNowPlaying = async (): Promise<void> => {
 
   const { getPlayoutSnapshot } = await import('./kacl-client')
   const snapshot = await getPlayoutSnapshot()
-  if (!snapshot || !snapshot.currentSource) return
+  if (!snapshot || !snapshot.reportedSource) return
   // kacl reports source "show" for any active session's track. A scheduled
   // show's display is set directly from kacl's own playout.session.started
   // webhook (see routes/api/kacl/webhook.ts) — don't let this poll clobber
@@ -106,18 +106,27 @@ export const pollKaclNowPlaying = async (): Promise<void> => {
   if (snapshot.activeSessionId?.startsWith('show:')) return
 
   const { name } = await getSiteSettings()
+  const title = snapshot.reportedTrackTitle ?? name
   setNowPlaying(
     {
       type: 'dead-air',
-      // currentShowName is null for dead-air/jingle rotation (there's no
-      // "show") — currentTrackTitle/currentTrackArtist are kacl's ID3-tag
+      // reportedShowName is null for dead-air/jingle rotation (there's no
+      // "show") — reportedTrackTitle/reportedTrackArtist are kacl's ID3-tag
       // (or filename-fallback) read for the actual track. Using
-      // currentShowName here was the bug: every 15s this poll would clobber
+      // reportedShowName here was the bug: every 15s this poll would clobber
       // a good webhook-set title with the site name, since dead-air tracks
-      // never have a show name.
-      title: snapshot.currentTrackTitle ?? name,
-      artist: snapshot.currentTrackArtist ?? name,
+      // never have a show name. Using reported* rather than current* here
+      // (rather than currentTrackTitle/currentTrackArtist) avoids a second
+      // bug: current* updates the instant kacl starts crossfading into a
+      // track, ~3s before it's actually what's audible on the stream.
+      // artist falls back to title (not the site name) when there's no
+      // ID3 artist tag — OnAirNow only renders "artist - title" when
+      // they're actually distinct, so falling back to the site name was
+      // rendering "Surge FM - <filename>" as if the station were the
+      // track's artist.
+      title,
+      artist: snapshot.reportedTrackArtist ?? title,
     },
-    `kacl playout snapshot poll (station rotation / dead air) — source "${snapshot.currentSource}"`,
+    `kacl playout snapshot poll (station rotation / dead air) — source "${snapshot.reportedSource}"`,
   )
 }

@@ -54,6 +54,46 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLive])
 
+  // The live stream connection can die from a network change (Chrome's
+  // ERR_NETWORK_CHANGED — WiFi reassociation, sleep/wake, VPN toggle; this
+  // fires alongside the same error on the now-playing SSE connection,
+  // which already recovers on its own). Unlike that SSE connection, the
+  // <audio> element has no automatic self-healing — it just silently
+  // stalls until the user happens to press pause/play, which is what
+  // "changeover requires a manual refresh" turned out to actually be.
+  // Recover automatically the same way togglePlay's play branch already
+  // does on manual resume. Only while audio is the active source — while
+  // live video is playing, audio is deliberately paused and shouldn't
+  // reconnect behind it.
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    let lastReloadAt = 0
+    const RELOAD_THROTTLE_MS = 5000
+
+    const handleError = () => {
+      if (isLive) return
+      // MEDIA_ERR_ABORTED fires from our *own* .load()/.pause() calls
+      // (this handler's own reload below, or the isLive handoff effect
+      // above) — reacting to it here would create a reload -> abort ->
+      // reload feedback loop, which sounds exactly like "super glitchy":
+      // rapid repeated audio restarts. Only react to actual failures.
+      if (audio.error?.code === MediaError.MEDIA_ERR_ABORTED) return
+      // Throttle as a backstop — a single genuine failure should only need
+      // one reload; anything reoccurring faster than this is more likely a
+      // loop than a legitimate string of independent network failures.
+      const now = Date.now()
+      if (now - lastReloadAt < RELOAD_THROTTLE_MS) return
+      lastReloadAt = now
+      audio.load()
+      audio.play().catch(() => { })
+    }
+
+    audio.addEventListener('error', handleError)
+    return () => audio.removeEventListener('error', handleError)
+  }, [isLive])
+
   // Reflect the shared video element's play/pause state while it's the active
   // source (mirrors VideoControls' own listener on the same element).
   useEffect(() => {
@@ -89,13 +129,21 @@ export const PlayerBar = ({ nowPlaying, videoRef }: PlayerBarProps) => {
     // Dead-air/episode audio: never pause — this is a live broadcast, not
     // seekable on-demand content, so pausing would mean resuming into a
     // stale position instead of what's actually on air now. Mute/unmute
-    // instead; the connection keeps running in the background so resuming
-    // is instant and always exactly current.
+    // instead.
     const next = !isPlaying
     setIsPlaying(next)
     setIsMuted(!next)
     media.muted = !next
-    if (next && media.paused) media.play().catch(() => { })
+    if (next) {
+      // The background connection can stall/buffer while the tab is
+      // backgrounded or the machine sleeps, so "resuming" it can play back
+      // stale audio for a while instead of what's on air now — force a
+      // fresh connection to the live edge instead of trusting whatever's
+      // already buffered.
+      const audio = media as HTMLAudioElement
+      audio.load()
+      audio.play().catch(() => { })
+    }
   }
 
   const toggleMute = () => {

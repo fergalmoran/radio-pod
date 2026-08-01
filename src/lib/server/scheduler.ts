@@ -4,7 +4,8 @@ import { db } from '@/db'
 import { shows, users } from '@/db/schema'
 import { setNowPlaying, markLiveStart, clearEpisodeGuard, pollKaclNowPlaying } from './now-playing'
 import { getSiteSettings } from './site-settings'
-import { stopActiveSession, ensureWebhookSubscription } from './kacl-client'
+import { stopActiveSession } from './kacl-client'
+import { startPlayoutHubConnection } from './playout-hub-client'
 
 let initialized = false
 
@@ -16,7 +17,7 @@ const refreshSchedule = async (): Promise<void> => {
 export const ensureRunning = (): void => {
   if (initialized) return
   initialized = true
-  void ensureWebhookSubscription()
+  startPlayoutHubConnection()
   void refreshSchedule()
   setInterval(() => void refreshSchedule(), 24 * 60 * 60 * 1000)
   // kacl owns playout timing entirely (its own Quartz scheduler, synced from

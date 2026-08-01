@@ -76,11 +76,13 @@ export const ChatMessageItem = ({
     : null
 
   const highlighted = !!currentUserName && isMentionedInMessage(message, currentUserName)
+  const isOwnMessage = !!currentUserId && message.userId === currentUserId
 
   return (
     <div
       className={cn(
         'flex gap-2 group rounded-md px-1 py-0.5 -mx-1',
+        isOwnMessage && 'flex-row-reverse',
         highlighted && 'bg-primary/10 border-l-2 border-primary pl-2',
       )}
       data-message-id={message.id}
@@ -91,11 +93,16 @@ export const ChatMessageItem = ({
         )}
         <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
       </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-1.5 flex-wrap">
+      <div className={cn('flex-1 min-w-0 flex flex-col', isOwnMessage && 'items-end')}>
+        <div className={cn('flex items-baseline gap-1.5 flex-wrap', isOwnMessage && 'flex-row-reverse')}>
           <span className="text-xs font-semibold">{message.userName}</span>
           <span className="text-xs text-muted-foreground">{timeLabel(message.createdAt)}</span>
-          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div
+            className={cn(
+              'flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity',
+              isOwnMessage ? 'mr-auto' : 'ml-auto',
+            )}
+          >
             {onReply && (
               <button
                 type="button"
@@ -123,7 +130,12 @@ export const ChatMessageItem = ({
           <button
             type="button"
             onClick={() => message.replyToId && onScrollToMessage?.(message.replyToId)}
-            className="mt-0.5 mb-1 pl-2 border-l-2 border-muted-foreground/30 text-xs text-muted-foreground line-clamp-1 text-left hover:border-primary hover:text-foreground transition-colors"
+            className={cn(
+              'mt-0.5 mb-1 text-xs text-muted-foreground line-clamp-1 hover:text-foreground transition-colors',
+              isOwnMessage
+                ? 'pr-2 border-r-2 border-muted-foreground/30 hover:border-primary text-right'
+                : 'pl-2 border-l-2 border-muted-foreground/30 hover:border-primary text-left',
+            )}
           >
             <span className="font-medium">{message.replyToUserName}</span>
             {': '}
@@ -132,7 +144,7 @@ export const ChatMessageItem = ({
         )}
 
         {message.content && (
-          <p className="text-sm leading-snug break-words mt-0.5">
+          <p className={cn('text-sm leading-snug wrap-break-word mt-0.5', isOwnMessage && 'text-right')}>
             {parseContent(message.content)}
           </p>
         )}
